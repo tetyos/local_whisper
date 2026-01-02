@@ -2,12 +2,10 @@
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
-    QComboBox, QProgressBar
+    QPushButton, QProgressBar
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QCloseEvent
-
-from ..transcriber import Transcriber
 
 
 class MainWindow(QMainWindow):
@@ -15,8 +13,8 @@ class MainWindow(QMainWindow):
     
     # Signal emitted when window is closed (to minimize to tray)
     close_to_tray = pyqtSignal()
-    # Signal emitted when user selects a different model
-    model_changed = pyqtSignal(str)  # model_name
+    # Signal emitted when user clicks the Models button
+    open_model_selector = pyqtSignal()
     
     def __init__(self):
         super().__init__()
@@ -28,10 +26,10 @@ class MainWindow(QMainWindow):
             Qt.WindowType.WindowCloseButtonHint
         )
         
-        self._current_model: str = ""  # Track current model to avoid duplicate signals
+        self._current_model: str = ""
+        self._current_model_size: str = ""
         self._setup_ui()
         self._apply_styles()
-        self._populate_models()
     
     def _setup_ui(self) -> None:
         """Set up the user interface."""
@@ -52,40 +50,44 @@ class MainWindow(QMainWindow):
         self.title_label.setObjectName("titleLabel")
         layout.addWidget(self.title_label)
         
-        # Model selection frame
-        model_frame = QFrame()
-        model_frame.setObjectName("modelFrame")
-        model_layout = QHBoxLayout(model_frame)
-        model_layout.setContentsMargins(15, 10, 15, 10)
+        # Model display frame (shows current model)
+        model_display_frame = QFrame()
+        model_display_frame.setObjectName("modelDisplayFrame")
+        model_display_layout = QVBoxLayout(model_display_frame)
+        model_display_layout.setContentsMargins(15, 12, 15, 12)
+        model_display_layout.setSpacing(2)
         
-        # Model label
-        model_label = QLabel("Model:")
-        model_label.setObjectName("modelLabel")
-        model_font = QFont("Segoe UI", 11)
-        model_label.setFont(model_font)
-        model_layout.addWidget(model_label)
+        # "Model:" label
+        model_header = QLabel("Model")
+        model_header.setObjectName("modelHeader")
+        model_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        model_header_font = QFont("Segoe UI", 9)
+        model_header.setFont(model_header_font)
+        model_display_layout.addWidget(model_header)
         
-        # Model dropdown
-        self.model_combo = QComboBox()
-        self.model_combo.setObjectName("modelCombo")
-        self.model_combo.setMinimumWidth(180)
-        self.model_combo.currentIndexChanged.connect(self._on_model_selection_changed)
-        model_layout.addWidget(self.model_combo)
+        # Current model name display
+        self.model_display_label = QLabel("No model selected")
+        self.model_display_label.setObjectName("modelDisplayLabel")
+        self.model_display_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        model_display_font = QFont("Segoe UI", 12, QFont.Weight.Bold)
+        self.model_display_label.setFont(model_display_font)
+        model_display_layout.addWidget(self.model_display_label)
         
-        # Download status indicator
-        self.download_status_label = QLabel("")
-        self.download_status_label.setObjectName("downloadStatusLabel")
-        self.download_status_label.setFixedWidth(80)
-        model_layout.addWidget(self.download_status_label)
+        layout.addWidget(model_display_frame)
         
-        layout.addWidget(model_frame)
+        # Models menu button
+        self.models_button = QPushButton("Models")
+        self.models_button.setObjectName("modelsButton")
+        self.models_button.setFixedHeight(36)
+        self.models_button.clicked.connect(self._on_models_button_clicked)
+        layout.addWidget(self.models_button)
         
-        # Progress bar (hidden by default)
+        # Progress bar for loading model into memory (hidden by default)
         self.progress_bar = QProgressBar()
         self.progress_bar.setObjectName("progressBar")
         self.progress_bar.setVisible(False)
         self.progress_bar.setTextVisible(True)
-        self.progress_bar.setFormat("%p% - Downloading...")
+        self.progress_bar.setFormat("Loading model...")
         layout.addWidget(self.progress_bar)
         
         # Status frame
@@ -129,39 +131,35 @@ class MainWindow(QMainWindow):
                 color: #00d4aa;
                 padding: 5px;
             }
-            #modelFrame {
+            #modelDisplayFrame {
                 background-color: #16213e;
                 border-radius: 8px;
                 border: 1px solid #0f3460;
             }
-            #modelLabel {
-                color: #aaaaaa;
+            #modelHeader {
+                color: #666677;
                 background-color: transparent;
             }
-            #modelCombo {
+            #modelDisplayLabel {
+                color: #00d4aa;
+                background-color: transparent;
+            }
+            #modelsButton {
                 background-color: #0f3460;
                 color: #ffffff;
                 border: 1px solid #1a4a7a;
-                border-radius: 4px;
-                padding: 5px 10px;
-                min-height: 25px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: bold;
             }
-            #modelCombo:hover {
+            #modelsButton:hover {
+                background-color: #1a4a7a;
                 border-color: #00d4aa;
             }
-            #modelCombo::drop-down {
-                border: none;
-                width: 20px;
-            }
-            #modelCombo QAbstractItemView {
-                background-color: #0f3460;
-                color: #ffffff;
-                selection-background-color: #1a4a7a;
-                border: 1px solid #1a4a7a;
-            }
-            #downloadStatusLabel {
-                background-color: transparent;
-                font-size: 10px;
+            #modelsButton:disabled {
+                background-color: #0a1628;
+                color: #555566;
+                border-color: #0f3460;
             }
             #progressBar {
                 background-color: #0f3460;
@@ -189,88 +187,55 @@ class MainWindow(QMainWindow):
             }
         """)
     
-    def _populate_models(self) -> None:
-        """Populate the model dropdown with available models."""
-        models = Transcriber.get_available_models()
-        for model in models:
-            display_text = f"{model['name']} ({model['size']})"
-            self.model_combo.addItem(display_text, model['name'])
+    def _on_models_button_clicked(self) -> None:
+        """Handle Models button click."""
+        self.open_model_selector.emit()
     
-    def _on_model_selection_changed(self, index: int) -> None:
-        """Handle model selection change."""
-        if index >= 0:
-            model_name = self.model_combo.itemData(index)
-            self._update_download_status(model_name)
-            # Only emit signal if model actually changed (avoid duplicates)
-            if model_name != self._current_model:
-                self._current_model = model_name
-                self.model_changed.emit(model_name)
-    
-    def _update_download_status(self, model_name: str) -> None:
-        """Update the download status indicator for the selected model."""
-        is_downloaded = Transcriber.is_model_downloaded(model_name)
-        if is_downloaded:
-            self.download_status_label.setText("✓ Ready")
-            self.download_status_label.setStyleSheet(
+    def set_current_model(self, model_name: str, model_size: str = "") -> None:
+        """
+        Set and display the currently selected model.
+        
+        Args:
+            model_name: Name of the model (e.g., "large-v3")
+            model_size: Size of the model (e.g., "~3 GB")
+        """
+        self._current_model = model_name
+        self._current_model_size = model_size
+        
+        if model_name:
+            if model_size:
+                self.model_display_label.setText(f"{model_name} ({model_size})")
+            else:
+                self.model_display_label.setText(model_name)
+            self.model_display_label.setStyleSheet(
                 "color: #00d4aa; background-color: transparent;"
             )
         else:
-            self.download_status_label.setText("⬇ Download")
-            self.download_status_label.setStyleSheet(
-                "color: #ffa502; background-color: transparent;"
+            self.model_display_label.setText("No model selected")
+            self.model_display_label.setStyleSheet(
+                "color: #888899; background-color: transparent;"
             )
     
-    def set_selected_model(self, model_name: str) -> None:
+    def get_current_model(self) -> str:
+        """Get the currently displayed model name."""
+        return self._current_model
+    
+    def set_models_button_enabled(self, enabled: bool) -> None:
+        """Enable or disable the Models button."""
+        self.models_button.setEnabled(enabled)
+    
+    def show_loading_progress(self, visible: bool, message: str = "Loading model...") -> None:
         """
-        Set the selected model in the dropdown (programmatically, won't emit signal).
+        Show or hide the loading progress indicator.
         
         Args:
-            model_name: Name of the model to select
+            visible: Whether to show the progress bar
+            message: Message to display
         """
-        self._current_model = model_name
-        # Block signals to prevent triggering model_changed when setting programmatically
-        self.model_combo.blockSignals(True)
-        for i in range(self.model_combo.count()):
-            if self.model_combo.itemData(i) == model_name:
-                self.model_combo.setCurrentIndex(i)
-                break
-        self.model_combo.blockSignals(False)
-        self._update_download_status(model_name)
-    
-    def get_selected_model(self) -> str:
-        """Get the currently selected model name."""
-        return self.model_combo.currentData()
-    
-    def set_model_selection_enabled(self, enabled: bool) -> None:
-        """Enable or disable model selection."""
-        self.model_combo.setEnabled(enabled)
-    
-    def show_download_progress(self, progress: float, message: str = "") -> None:
-        """
-        Show download progress.
-        
-        Args:
-            progress: Progress percentage (0-100), or -1 to hide
-            message: Optional status message
-        """
-        if progress < 0:
-            self.progress_bar.setVisible(False)
-            return
-        
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setValue(int(progress))
-        if message:
-            self.progress_bar.setFormat(f"%p% - {message}")
-    
-    def hide_download_progress(self) -> None:
-        """Hide the download progress bar."""
-        self.progress_bar.setVisible(False)
-    
-    def refresh_model_status(self) -> None:
-        """Refresh the download status of the currently selected model."""
-        model_name = self.get_selected_model()
-        if model_name:
-            self._update_download_status(model_name)
+        self.progress_bar.setVisible(visible)
+        if visible:
+            self.progress_bar.setFormat(message)
+            self.progress_bar.setRange(0, 0)  # Indeterminate progress
     
     def set_status(self, status: str, is_recording: bool = False) -> None:
         """

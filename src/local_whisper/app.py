@@ -31,8 +31,9 @@ class LocalWhisperApp(QObject):
     # Signals for UI updates (thread-safe)
     state_changed = pyqtSignal(AppState, str)  # state, message
     error_occurred = pyqtSignal(str)  # error message
-    download_progress = pyqtSignal(float, str)  # progress (0-100), message
-    model_ready = pyqtSignal(str)  # model_name - emitted when model is loaded
+    download_progress = pyqtSignal(str, float, str)  # model_name, progress (0-100), message
+    download_complete = pyqtSignal(str)  # model_name - emitted when download finishes
+    model_ready = pyqtSignal(str)  # model_name - emitted when model is loaded into memory
     
     def __init__(self):
         super().__init__()
@@ -50,6 +51,7 @@ class LocalWhisperApp(QObject):
         self._state = AppState.LOADING
         self._lock = threading.Lock()
         self._hotkey_registered = False
+        self._downloading_model: str = ""  # Track which model is being downloaded
     
     @property
     def state(self) -> AppState:
@@ -68,6 +70,11 @@ class LocalWhisperApp(QObject):
         """Get the currently selected model name."""
         return self._selected_model
     
+    @property
+    def is_downloading(self) -> bool:
+        """Check if a download is in progress."""
+        return self._downloading_model != ""
+    
     def _register_hotkey(self) -> None:
         """Register the hotkey if not already registered."""
         if not self._hotkey_registered:
@@ -81,16 +88,17 @@ class LocalWhisperApp(QObject):
         # Register hotkey early so it's available
         self._register_hotkey()
         
-        # Check if the selected model is downloaded
-        if is_model_downloaded(self._selected_model):
+        # Check if the selected model exists and is downloaded
+        if self._selected_model and is_model_downloaded(self._selected_model):
             self.state_changed.emit(AppState.LOADING, f"Loading {self._selected_model} model...")
             self._load_model_async()
         else:
-            # Model not downloaded - wait for user to trigger download
+            # No model selected or model not downloaded - wait for user action
+            self._selected_model = ""
             self.state = AppState.NO_MODEL
             self.state_changed.emit(
                 AppState.NO_MODEL, 
-                f"Model '{self._selected_model}' not downloaded. Select a model to download."
+                "No model selected"
             )
     
     def _load_model_async(self) -> None:
@@ -98,7 +106,6 @@ class LocalWhisperApp(QObject):
         def load_model():
             try:
                 # Model is already downloaded, just load it
-                # No progress bar needed for loading (it's quick or indeterminate)
                 self.transcriber.load_model()
                 
                 self.state = AppState.IDLE
@@ -112,12 +119,15 @@ class LocalWhisperApp(QObject):
         thread = threading.Thread(target=load_model, daemon=True)
         thread.start()
     
-    def change_model(self, model_name: str) -> None:
+    def select_model(self, model_name: str) -> None:
         """
-        Change to a different model.
+        Select and load an already-downloaded model.
+        
+        This method is for switching to a model that is already downloaded.
+        It will load the model into memory.
         
         Args:
-            model_name: Name of the model to switch to
+            model_name: Name of the model to select
         """
         if model_name == self._selected_model and self.transcriber.is_loaded():
             # Same model, already loaded
@@ -129,54 +139,72 @@ class LocalWhisperApp(QObject):
             self.error_occurred.emit("Cannot change model while busy. Please wait.")
             return
         
+        # Verify model is downloaded
+        if not is_model_downloaded(model_name):
+            self.error_occurred.emit(f"Model '{model_name}' is not downloaded. Please download it first.")
+            return
+        
         # Update selected model
         self._selected_model = model_name
         set_selected_model(model_name)
         self.transcriber.set_model_size(model_name)
         
-        # Check if model is downloaded
-        if is_model_downloaded(model_name):
-            # Load the model
-            self.state = AppState.LOADING
-            self.state_changed.emit(AppState.LOADING, f"Loading {model_name} model...")
-            self._load_model_async()
-        else:
-            # Need to download first
-            self.state = AppState.DOWNLOADING
-            self.state_changed.emit(AppState.DOWNLOADING, f"Downloading {model_name}...")
-            self._download_and_load_model(model_name)
+        # Load the model
+        self.state = AppState.LOADING
+        self.state_changed.emit(AppState.LOADING, f"Loading {model_name} into memory...")
+        self._load_model_async()
     
-    def _download_and_load_model(self, model_name: str) -> None:
-        """Download and load a model in background thread."""
-        def download_and_load():
+    def start_download(self, model_name: str) -> None:
+        """
+        Start downloading a model.
+        
+        This method only downloads the model, it does not select or load it.
+        The download_complete signal will be emitted when done.
+        
+        Args:
+            model_name: Name of the model to download
+        """
+        # Don't allow multiple simultaneous downloads
+        if self.is_downloading:
+            self.error_occurred.emit("A download is already in progress. Please wait.")
+            return
+        
+        # Check if already downloaded
+        if is_model_downloaded(model_name):
+            self.error_occurred.emit(f"Model '{model_name}' is already downloaded.")
+            return
+        
+        self._downloading_model = model_name
+        self.state = AppState.DOWNLOADING
+        self.state_changed.emit(AppState.DOWNLOADING, f"Downloading {model_name}...")
+        
+        def do_download():
             try:
-                def on_download_progress(progress: float, message: str):
+                def on_progress(progress: float, message: str):
                     """Handle download progress updates."""
-                    self.download_progress.emit(progress, message)
+                    self.download_progress.emit(model_name, progress, message)
                 
-                # Download the model (progress 0-100%)
-                download_model(model_name, on_progress=on_download_progress)
+                # Download the model
+                download_model(model_name, on_progress=on_progress)
                 
-                # Hide download progress bar after download completes
-                self.download_progress.emit(-1, "")
+                # Download complete
+                self._downloading_model = ""
+                self.download_complete.emit(model_name)
                 
-                # Now load it - this is a separate phase
-                self.state = AppState.LOADING
-                self.state_changed.emit(AppState.LOADING, f"Loading {model_name} into memory...")
-                
-                # Load model without progress callback (loading doesn't have granular progress)
-                self.transcriber.load_model()
-                
-                self.state = AppState.IDLE
-                self.state_changed.emit(AppState.IDLE, "Ready")
-                self.model_ready.emit(model_name)
+                # Return to previous state
+                if self.transcriber.is_loaded():
+                    self.state = AppState.IDLE
+                    self.state_changed.emit(AppState.IDLE, "Ready")
+                else:
+                    self.state = AppState.NO_MODEL
+                    self.state_changed.emit(AppState.NO_MODEL, "Select a model to use")
                 
             except Exception as e:
+                self._downloading_model = ""
                 self.state = AppState.ERROR
-                self.error_occurred.emit(f"Failed to download/load model: {str(e)}")
-                self.download_progress.emit(-1, "")  # Hide progress
+                self.error_occurred.emit(f"Download failed: {str(e)}")
         
-        thread = threading.Thread(target=download_and_load, daemon=True)
+        thread = threading.Thread(target=do_download, daemon=True)
         thread.start()
     
     def _on_hotkey_pressed(self) -> None:

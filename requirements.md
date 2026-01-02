@@ -45,10 +45,17 @@ Local Whisper is a Windows speech-to-text (STT) application that allows users to
 - Only open-source models shall be available for selection (no proprietary models)
 - Models shall be stored in `%APPDATA%/local-whisper/models/`
 - Models shall NOT be automatically downloaded on first run or application start
-- A model shall only be downloaded when the user explicitly selects that specific model
-- When a model is selected but not yet downloaded, it shall be downloaded automatically with progress indicators displayed (e.g., progress bar, percentage, or download status)
-- The user interface shall clearly indicate which models are already downloaded and available locally
-- The user interface shall clearly display which model is currently selected
+- The main window shall display the currently selected model name and size (or "No model selected" if none)
+- The main window shall have a "Models" button that opens a dedicated model selection screen
+- The model selection screen shall display all available models as a list with:
+  - Model name and size
+  - Short description of the model (e.g., "Best accuracy", "Fastest")
+  - Download status: "Downloaded" label (green) for downloaded models, "Download" button for not-downloaded models
+  - Radio button selection to choose which model to use
+- Each not-downloaded model shall have its own "Download" button to start downloading
+- When a download is in progress, all other download buttons shall be disabled (only one download at a time)
+- Download progress shall be displayed within the model card being downloaded
+- The "Use this model" button shall only be enabled when a downloaded model is selected
 - The currently selected model shall be used for all transcription tasks
 - The selected model preference shall persist across application sessions
 
@@ -56,10 +63,11 @@ Local Whisper is a Windows speech-to-text (STT) application that allows users to
 - Download progress shall be tracked and displayed by bytes downloaded, not by file count
 - The progress bar shall show accurate percentage based on total bytes downloaded vs. total bytes to download
 - Progress messages shall display the current file being downloaded along with downloaded/total bytes (e.g., "Downloading model.bin (1.2 GB/1.5 GB)")
-- Progress updates shall be displayed in real-time during the download process by monitoring incomplete download files
+- Progress updates shall be displayed in real-time during the download process
+- Download progress shall be displayed in the model selection screen (within the model card being downloaded)
 - Download progress and model loading shall be separate phases:
-  - Download phase: Progress bar shows 0-100% based on bytes downloaded
-  - Loading phase: After download completes, progress bar is hidden and status shows "Loading {model} into memory..." message
+  - Download phase: Progress bar shows 0-100% based on bytes downloaded (in model selection screen)
+  - Loading phase: After model is selected, main window shows "Loading {model} into memory..." with indeterminate progress
 - The progress bar shall update smoothly during large file downloads, not just between files
 
 ## Non-Functional Requirements
