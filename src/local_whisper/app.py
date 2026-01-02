@@ -97,10 +97,9 @@ class LocalWhisperApp(QObject):
         """Load the model in a background thread."""
         def load_model():
             try:
-                def on_progress(progress: float, message: str):
-                    self.download_progress.emit(progress, message)
-                
-                self.transcriber.load_model(on_progress=on_progress)
+                # Model is already downloaded, just load it
+                # No progress bar needed for loading (it's quick or indeterminate)
+                self.transcriber.load_model()
                 
                 self.state = AppState.IDLE
                 self.state_changed.emit(AppState.IDLE, "Ready")
@@ -151,22 +150,26 @@ class LocalWhisperApp(QObject):
         """Download and load a model in background thread."""
         def download_and_load():
             try:
-                def on_progress(progress: float, message: str):
+                def on_download_progress(progress: float, message: str):
+                    """Handle download progress updates."""
                     self.download_progress.emit(progress, message)
                 
-                # Download the model
-                download_model(model_name, on_progress=on_progress)
+                # Download the model (progress 0-100%)
+                download_model(model_name, on_progress=on_download_progress)
                 
-                # Now load it
+                # Hide download progress bar after download completes
+                self.download_progress.emit(-1, "")
+                
+                # Now load it - this is a separate phase
                 self.state = AppState.LOADING
-                self.state_changed.emit(AppState.LOADING, f"Loading {model_name} model...")
+                self.state_changed.emit(AppState.LOADING, f"Loading {model_name} into memory...")
                 
-                self.transcriber.load_model(on_progress=on_progress)
+                # Load model without progress callback (loading doesn't have granular progress)
+                self.transcriber.load_model()
                 
                 self.state = AppState.IDLE
                 self.state_changed.emit(AppState.IDLE, "Ready")
                 self.model_ready.emit(model_name)
-                self.download_progress.emit(-1, "")  # Hide progress
                 
             except Exception as e:
                 self.state = AppState.ERROR

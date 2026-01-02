@@ -52,6 +52,16 @@ Local Whisper is a Windows speech-to-text (STT) application that allows users to
 - The currently selected model shall be used for all transcription tasks
 - The selected model preference shall persist across application sessions
 
+### FR-8: Download Progress Tracking
+- Download progress shall be tracked and displayed by bytes downloaded, not by file count
+- The progress bar shall show accurate percentage based on total bytes downloaded vs. total bytes to download
+- Progress messages shall display the current file being downloaded along with downloaded/total bytes (e.g., "Downloading model.bin (1.2 GB/1.5 GB)")
+- Progress updates shall be displayed in real-time during the download process by monitoring incomplete download files
+- Download progress and model loading shall be separate phases:
+  - Download phase: Progress bar shows 0-100% based on bytes downloaded
+  - Loading phase: After download completes, progress bar is hidden and status shows "Loading {model} into memory..." message
+- The progress bar shall update smoothly during large file downloads, not just between files
+
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
@@ -74,6 +84,7 @@ Local Whisper is a Windows speech-to-text (STT) application that allows users to
 |-----------|------------|---------|
 | Language | Python 3.11+ | Development language |
 | STT Model | faster-whisper (tiny, base, small, medium, large, large-v2, large-v3) | Speech recognition |
+| Model Download | huggingface_hub | Download models from HuggingFace Hub |
 | Audio | sounddevice + numpy | Microphone capture |
 | Hotkey | keyboard | Global hotkey detection |
 | UI | PyQt6 | Desktop application UI |
