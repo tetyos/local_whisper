@@ -7,8 +7,8 @@ Luca Whisper is a Windows speech-to-text (STT) application that allows users to 
 ## Functional Requirements
 
 ### FR-1: Speech-to-Text Conversion
-- The application shall use the Whisper AI model (base variant, ~150MB) for speech recognition
-- The model shall be downloaded automatically on first run to `%APPDATA%/luca-whisper/models/`
+- The application shall use faster-whisper models (optimized versions of OpenAI whisper models) for speech recognition
+- Transcription shall use the model which is currently selected by the user (see FR-7: Model Selection)
 - Transcription shall support multiple languages (Whisper's default language detection)
 
 ### FR-2: Hotkey Activation
@@ -40,6 +40,18 @@ Luca Whisper is a Windows speech-to-text (STT) application that allows users to 
 - The application shall be installable via a standalone `.exe` file
 - No external dependencies required for end users (bundled with PyInstaller)
 
+### FR-7: Model Selection
+- Users shall be able to choose from all available faster-whisper models equivalents to OpenAI Whisper models (e.g., tiny, base, small, medium, large, large-v2, large-v3)
+- Only open-source models shall be available for selection (no proprietary models)
+- Models shall be stored in `%APPDATA%/luca-whisper/models/`
+- Models shall NOT be automatically downloaded on first run or application start
+- A model shall only be downloaded when the user explicitly selects that specific model
+- When a model is selected but not yet downloaded, it shall be downloaded automatically with progress indicators displayed (e.g., progress bar, percentage, or download status)
+- The user interface shall clearly indicate which models are already downloaded and available locally
+- The user interface shall clearly display which model is currently selected
+- The currently selected model shall be used for all transcription tasks
+- The selected model preference shall persist across application sessions
+
 ## Non-Functional Requirements
 
 ### NFR-1: Performance
@@ -61,7 +73,7 @@ Luca Whisper is a Windows speech-to-text (STT) application that allows users to 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
 | Language | Python 3.11+ | Development language |
-| STT Model | faster-whisper (base) | Speech recognition |
+| STT Model | faster-whisper (tiny, base, small, medium, large, large-v2, large-v3) | Speech recognition |
 | Audio | sounddevice + numpy | Microphone capture |
 | Hotkey | keyboard | Global hotkey detection |
 | UI | PyQt6 | Desktop application UI |
