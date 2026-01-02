@@ -46,8 +46,8 @@ Local Whisper is a Windows speech-to-text (STT) application that allows users to
 - Models shall be stored in `%APPDATA%/local-whisper/models/`
 - Models shall NOT be automatically downloaded on first run or application start
 - The main window shall display the currently selected model name and size (or "No model selected" if none)
-- The main window shall have a "Models" button that opens a dedicated model selection screen
-- The model selection screen shall display all available models as a list with:
+- The main window shall have a "Models" button that switches to a model selection view (within the same window)
+- The model selection view shall display all available models as a list with:
   - Model name and size
   - Short description of the model (e.g., "Best accuracy", "Fastest")
   - Download status: "Downloaded" label (green) for downloaded models, "Download" button for not-downloaded models
@@ -56,6 +56,7 @@ Local Whisper is a Windows speech-to-text (STT) application that allows users to
 - When a download is in progress, all other download buttons shall be disabled (only one download at a time)
 - Download progress shall be displayed within the model card being downloaded
 - The "Use this model" button shall only be enabled when a downloaded model is selected
+- A "Back" button shall return to the main view
 - The currently selected model shall be used for all transcription tasks
 - The selected model preference shall persist across application sessions
 
@@ -64,10 +65,10 @@ Local Whisper is a Windows speech-to-text (STT) application that allows users to
 - The progress bar shall show accurate percentage based on total bytes downloaded vs. total bytes to download
 - Progress messages shall display the current file being downloaded along with downloaded/total bytes (e.g., "Downloading model.bin (1.2 GB/1.5 GB)")
 - Progress updates shall be displayed in real-time during the download process
-- Download progress shall be displayed in the model selection screen (within the model card being downloaded)
+- Download progress shall be displayed in the model selection view (within the model card being downloaded)
 - Download progress and model loading shall be separate phases:
-  - Download phase: Progress bar shows 0-100% based on bytes downloaded (in model selection screen)
-  - Loading phase: After model is selected, main window shows "Loading {model} into memory..." with indeterminate progress
+  - Download phase: Progress bar shows 0-100% based on bytes downloaded (in model selection view)
+  - Loading phase: After model is selected, main view shows "Loading {model} into memory..." status text
 - The progress bar shall update smoothly during large file downloads, not just between files
 
 ## Non-Functional Requirements
