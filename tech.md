@@ -1,11 +1,11 @@
-# Luca Whisper - Technical Documentation
+# Local Whisper - Technical Documentation
 
 ## Project Structure
 
 ```
-luca_whisper/
+local_whisper/
 ├── src/
-│   └── luca_whisper/
+│   └── local_whisper/
 │       ├── __init__.py           # Package initialization with version info
 │       ├── main.py               # Application entry point
 │       ├── app.py                # Main application controller (state machine)
@@ -46,7 +46,7 @@ luca_whisper/
 
 3. **First run:**
    - The Whisper base model (~150MB) will be downloaded automatically
-   - Model is stored in `%APPDATA%\luca-whisper\models\`
+   - Model is stored in `%APPDATA%\local-whisper\models\`
    - This may take a few minutes depending on your internet connection
 
 ### Building the Installer (.exe)
@@ -60,7 +60,7 @@ luca_whisper/
    - Creates/activates virtual environment
    - Installs dependencies including PyInstaller
    - Builds a standalone Windows executable
-   - Executable is created in `dist\luca-whisper.exe`
+   - Executable is created in `dist\local-whisper.exe`
 
 3. **Distribution:**
    - The `.exe` file is self-contained (no Python installation required)
@@ -82,7 +82,7 @@ venv\Scripts\activate
 pip install -r requirements.txt
 
 # Run the application
-python -m src.luca_whisper.main
+python -m src.local_whisper.main
 
 # Or build the executable
 pyinstaller build.spec

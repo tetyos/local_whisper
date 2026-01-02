@@ -1,10 +1,10 @@
-"""Entry point for Luca Whisper application."""
+"""Entry point for Local Whisper application."""
 
 import sys
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
-from .app import LucaWhisperApp, AppState
+from .app import LocalWhisperApp, AppState
 from .ui.main_window import MainWindow
 from .ui.system_tray import SystemTray
 
@@ -18,7 +18,7 @@ def main():
     
     # Create application
     app = QApplication(sys.argv)
-    app.setApplicationName("luca-whisper")
+    app.setApplicationName("local-whisper")
     app.setQuitOnLastWindowClosed(False)  # Keep running in tray
     
     # Create main window
@@ -29,7 +29,7 @@ def main():
     tray.show()
     
     # Create app controller
-    controller = LucaWhisperApp()
+    controller = LocalWhisperApp()
     
     # Set initial model selection from settings
     window.set_selected_model(controller.selected_model)
@@ -54,7 +54,7 @@ def main():
     def on_error(message: str):
         """Handle errors."""
         window.set_status(f"Error: {message}", is_recording=False)
-        tray.show_message("luca-whisper", message, tray.MessageIcon.Warning)
+        tray.show_message("local-whisper", message, tray.MessageIcon.Warning)
     
     def on_download_progress(progress: float, message: str):
         """Handle download progress updates."""
@@ -86,7 +86,7 @@ def main():
     def on_close_to_tray():
         """Handle window close (minimize to tray)."""
         tray.show_message(
-            "luca-whisper",
+            "local-whisper",
             "Application minimized to tray. Press Ctrl+Space to record.",
             tray.MessageIcon.Information,
             2000

@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec file for Luca Whisper."""
+"""PyInstaller spec file for Local Whisper."""
 
 from pathlib import Path
 
@@ -10,7 +10,7 @@ project_root = Path(SPECPATH)
 icon_path = project_root / 'assets' / 'icon.ico'
 
 a = Analysis(
-    [str(project_root / 'src' / 'luca_whisper' / 'main.py')],
+    [str(project_root / 'src' / 'local_whisper' / 'main.py')],
     pathex=[str(project_root / 'src')],
     binaries=[],
     datas=[],
@@ -48,7 +48,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='luca-whisper',
+    name='local-whisper',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

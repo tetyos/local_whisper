@@ -25,7 +25,7 @@ class AppState(Enum):
     ERROR = auto()
 
 
-class LucaWhisperApp(QObject):
+class LocalWhisperApp(QObject):
     """Main application controller."""
     
     # Signals for UI updates (thread-safe)

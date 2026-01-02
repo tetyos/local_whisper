@@ -1,4 +1,4 @@
-# Luca Whisper
+# Local Whisper
 
 A simple speech-to-text application for Windows using OpenAI's Whisper model.
 
@@ -14,16 +14,16 @@ A simple speech-to-text application for Windows using OpenAI's Whisper model.
 
 ### From Release (Recommended)
 
-1. Download the latest `luca-whisper.exe` from Releases
+1. Download the latest `local-whisper.exe` from Releases
 2. Run the installer
-3. Launch "luca-whisper" from the Start Menu
+3. Launch "local-whisper" from the Start Menu
 
 ### From Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/luca-whisper.git
-cd luca-whisper
+git clone https://github.com/yourusername/local-whisper.git
+cd local-whisper
 
 # Create virtual environment
 python -m venv venv
@@ -33,7 +33,7 @@ venv\Scripts\activate
 pip install -r requirements.txt
 
 # Run the application
-python -m src.luca_whisper.main
+python -m src.local_whisper.main
 ```
 
 ## Usage

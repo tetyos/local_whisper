@@ -9,7 +9,7 @@ from typing import Any
 def get_settings_directory() -> Path:
     """Get the directory for storing application settings."""
     appdata = os.environ.get('APPDATA', os.path.expanduser('~'))
-    settings_dir = Path(appdata) / 'luca-whisper'
+    settings_dir = Path(appdata) / 'local-whisper'
     settings_dir.mkdir(parents=True, exist_ok=True)
     return settings_dir
 

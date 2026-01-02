@@ -1,4 +1,4 @@
-"""Main window UI for Luca Whisper."""
+"""Main window UI for Local Whisper."""
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
@@ -20,7 +20,7 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("luca-whisper")
+        self.setWindowTitle("local-whisper")
         self.setFixedSize(400, 320)
         self.setWindowFlags(
             Qt.WindowType.Window |
@@ -45,7 +45,7 @@ class MainWindow(QMainWindow):
         layout.setSpacing(15)
         
         # App title
-        self.title_label = QLabel("luca-whisper")
+        self.title_label = QLabel("local-whisper")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_font = QFont("Segoe UI", 28, QFont.Weight.Bold)
         self.title_label.setFont(title_font)

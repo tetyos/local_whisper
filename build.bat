@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Building Luca Whisper
+echo Building Local Whisper
 echo ========================================
 echo.
 
@@ -25,7 +25,7 @@ pyinstaller build.spec --clean
 echo.
 echo ========================================
 echo Build complete!
-echo Executable is in: dist\luca-whisper.exe
+echo Executable is in: dist\local-whisper.exe
 echo ========================================
 pause
 

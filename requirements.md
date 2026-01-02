@@ -1,8 +1,8 @@
-# Luca Whisper - Requirements Specification
+# Local Whisper - Requirements Specification
 
 ## Overview
 
-Luca Whisper is a Windows speech-to-text (STT) application that allows users to dictate text directly into any active window using a global hotkey.
+Local Whisper is a Windows speech-to-text (STT) application that allows users to dictate text directly into any active window using a global hotkey.
 
 ## Functional Requirements
 
@@ -23,7 +23,7 @@ Luca Whisper is a Windows speech-to-text (STT) application that allows users to 
 - The application shall simulate keyboard input (not clipboard paste)
 
 ### FR-4: User Interface
-- Display program name "luca-whisper" prominently
+- Display program name "local-whisper" prominently
 - Show current status: idle, recording, or transcribing
 - Display the hotkey shortcut `Ctrl+Space` for user reference
 - Visual indicator when recording is active (e.g., recording icon or status text)
@@ -43,7 +43,7 @@ Luca Whisper is a Windows speech-to-text (STT) application that allows users to 
 ### FR-7: Model Selection
 - Users shall be able to choose from all available faster-whisper models equivalents to OpenAI Whisper models (e.g., tiny, base, small, medium, large, large-v2, large-v3)
 - Only open-source models shall be available for selection (no proprietary models)
-- Models shall be stored in `%APPDATA%/luca-whisper/models/`
+- Models shall be stored in `%APPDATA%/local-whisper/models/`
 - Models shall NOT be automatically downloaded on first run or application start
 - A model shall only be downloaded when the user explicitly selects that specific model
 - When a model is selected but not yet downloaded, it shall be downloaded automatically with progress indicators displayed (e.g., progress bar, percentage, or download status)

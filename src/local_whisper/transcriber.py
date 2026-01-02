@@ -23,7 +23,7 @@ MODEL_REPO_MAP = {
 def get_model_directory() -> Path:
     """Get the directory for storing Whisper models."""
     appdata = os.environ.get('APPDATA', os.path.expanduser('~'))
-    model_dir = Path(appdata) / 'luca-whisper' / 'models'
+    model_dir = Path(appdata) / 'local-whisper' / 'models'
     model_dir.mkdir(parents=True, exist_ok=True)
     return model_dir
 

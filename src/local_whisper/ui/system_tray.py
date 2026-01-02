@@ -1,4 +1,4 @@
-"""System tray icon for Luca Whisper."""
+"""System tray icon for Local Whisper."""
 
 from PyQt6.QtWidgets import QSystemTrayIcon, QMenu
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QBrush
@@ -72,7 +72,7 @@ class SystemTray(QSystemTrayIcon):
         
         # Set initial icon
         self.setIcon(create_tray_icon(recording=False))
-        self.setToolTip("luca-whisper - Press Ctrl+Space to record")
+        self.setToolTip("local-whisper - Press Ctrl+Space to record")
         
         # Create context menu
         self._create_menu()
@@ -111,9 +111,9 @@ class SystemTray(QSystemTrayIcon):
         self.setIcon(create_tray_icon(recording=recording))
         
         if recording:
-            self.setToolTip("luca-whisper - Recording... Press Ctrl+Space to stop")
+            self.setToolTip("local-whisper - Recording... Press Ctrl+Space to stop")
         else:
-            self.setToolTip("luca-whisper - Press Ctrl+Space to record")
+            self.setToolTip("local-whisper - Press Ctrl+Space to record")
     
     def show_message(self, title: str, message: str, 
                      icon: QSystemTrayIcon.MessageIcon = QSystemTrayIcon.MessageIcon.Information,

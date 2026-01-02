@@ -1,5 +1,5 @@
 @echo off
-echo Starting Luca Whisper (Development Mode)
+echo Starting Local Whisper (Development Mode)
 echo ========================================
 echo.
 
@@ -19,5 +19,5 @@ echo Starting application...
 echo Press Ctrl+C to stop
 echo.
 
-python -m src.luca_whisper.main
+python -m src.local_whisper.main
 
