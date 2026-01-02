@@ -3,11 +3,11 @@
 import os
 import numpy as np
 import threading
-import time
 from pathlib import Path
 from typing import Optional, Callable
 from faster_whisper import WhisperModel
 from huggingface_hub import hf_hub_download, HfApi
+from tqdm import tqdm
 
 
 # Mapping of model names to HuggingFace repo names
@@ -79,38 +79,115 @@ def _format_bytes(bytes_val: int) -> str:
         return f"{bytes_val / (1024 * 1024 * 1024):.2f} GB"
 
 
-def _get_incomplete_files_size(cache_dir: Path) -> int:
+class _ProgressTracker(tqdm):
     """
-    Get total size of incomplete files being downloaded.
+    Custom tqdm class that captures progress updates from HuggingFace downloads.
     
-    HuggingFace Hub stores incomplete downloads as .incomplete files.
-    We search recursively for these files in the cache directory.
+    This hooks into HuggingFace Hub's internal tqdm usage to get accurate
+    byte-level progress instead of relying on file system checks.
     """
-    total = 0
-    seen_paths = set()
     
-    try:
-        # Search for .incomplete files recursively
-        # These are the temporary files created during download
-        for incomplete_file in cache_dir.rglob("*.incomplete"):
-            try:
-                # Use resolved path to avoid counting same file twice
-                file_path = incomplete_file.resolve()
-                if file_path in seen_paths:
-                    continue
-                seen_paths.add(file_path)
-                
-                # Get file size
-                size = incomplete_file.stat().st_size
-                total += size
-            except (OSError, FileNotFoundError):
-                # File might have been completed or deleted between check and stat
-                pass
-    except Exception:
-        # If there's any error searching, return 0
-        pass
+    # Class-level state shared across all instances during a download session
+    _callback = None
+    _total_bytes = 0
+    _completed_bytes = 0
+    _current_file = ""
+    _current_file_size = 0
+    _current_file_started = False
+    _lock = threading.Lock()
     
-    return total
+    @classmethod
+    def reset_state(cls, callback, total_bytes):
+        """Reset tracking state for a new download session."""
+        with cls._lock:
+            cls._callback = callback
+            cls._total_bytes = total_bytes
+            cls._completed_bytes = 0
+            cls._current_file = ""
+            cls._current_file_size = 0
+            cls._current_file_started = False
+    
+    @classmethod
+    def set_current_file(cls, filename, size):
+        """Set the current file being downloaded."""
+        with cls._lock:
+            # If previous file didn't trigger any download (was cached),
+            # add its size to completed bytes
+            if cls._current_file and not cls._current_file_started:
+                cls._completed_bytes += cls._current_file_size
+                cls._report_progress()
+            
+            cls._current_file = filename
+            cls._current_file_size = size
+            cls._current_file_started = False
+    
+    @classmethod
+    def finalize(cls):
+        """Call after all downloads to handle the last cached file if any."""
+        with cls._lock:
+            # Handle final file if it was cached (no download triggered)
+            if cls._current_file and not cls._current_file_started:
+                cls._completed_bytes += cls._current_file_size
+            cls._current_file = ""
+            cls._current_file_size = 0
+            cls._current_file_started = False
+    
+    @classmethod
+    def _report_progress(cls):
+        """Report current progress to callback."""
+        if cls._callback and cls._total_bytes > 0:
+            percent = (cls._completed_bytes / cls._total_bytes) * 100
+            percent = min(99.9, max(0, percent))
+            downloaded_str = _format_bytes(cls._completed_bytes)
+            total_str = _format_bytes(cls._total_bytes)
+            cls._callback(percent, f"Downloading {cls._current_file} ({downloaded_str}/{total_str})")
+    
+    def __init__(self, *args, **kwargs):
+        # Store the file size for this specific download
+        self._file_total = kwargs.get('total', 0) or 0
+        self._file_progress = 0
+        self._closed = False  # Guard against double close() calls
+        # Mark that download has started for current file
+        with _ProgressTracker._lock:
+            _ProgressTracker._current_file_started = True
+        
+        # Remove kwargs that tqdm doesn't recognize (HuggingFace adds 'name')
+        kwargs.pop('name', None)
+        super().__init__(*args, **kwargs)
+    
+    def update(self, n=1):
+        """Called by HuggingFace when bytes are downloaded."""
+        super().update(n)
+        
+        with _ProgressTracker._lock:
+            # Track progress for this file
+            self._file_progress += n
+            
+            # Calculate overall progress
+            overall_progress = _ProgressTracker._completed_bytes + self._file_progress
+            
+            if _ProgressTracker._callback and _ProgressTracker._total_bytes > 0:
+                percent = (overall_progress / _ProgressTracker._total_bytes) * 100
+                percent = min(99.9, max(0, percent))
+                downloaded_str = _format_bytes(overall_progress)
+                total_str = _format_bytes(_ProgressTracker._total_bytes)
+                _ProgressTracker._callback(
+                    percent, 
+                    f"Downloading {_ProgressTracker._current_file} ({downloaded_str}/{total_str})"
+                )
+    
+    def close(self):
+        """Called when download completes. May be called multiple times by tqdm."""
+        super().close()
+        with _ProgressTracker._lock:
+            # Guard against double close() calls (tqdm may call close() multiple times)
+            if self._closed:
+                return
+            self._closed = True
+            
+            # Use file_progress if file_total is 0 (HF doesn't always provide Content-Length)
+            bytes_to_add = self._file_total if self._file_total > 0 else self._file_progress
+            _ProgressTracker._completed_bytes += bytes_to_add
 
 
 def download_model(
@@ -120,7 +197,8 @@ def download_model(
     """
     Download a model from HuggingFace Hub with real-time progress tracking.
     
-    Monitors download progress by watching .incomplete files in the cache.
+    Uses a custom tqdm class to capture actual download progress from
+    HuggingFace Hub's internal progress reporting.
     
     Args:
         model_name: Name of the model to download
@@ -128,7 +206,6 @@ def download_model(
     """
     repo_name = MODEL_REPO_MAP.get(model_name, model_name)
     model_dir = get_model_directory()
-    model_cache_dir = get_model_path(model_name)  # Specific model cache directory
     
     if on_progress:
         on_progress(0, f"Starting download of {model_name}...")
@@ -157,94 +234,29 @@ def download_model(
         # Sort files by size - download smaller files first for quicker initial progress
         files_to_download.sort(key=lambda x: x['size'])
         
-        # Track completed downloads with thread-safe locking
-        completed_bytes = 0
-        completed_lock = threading.Lock()
-        stop_monitoring = threading.Event()
-        current_file_info = {'name': '', 'size': 0}
-        current_file_lock = threading.Lock()
+        # Initialize progress tracker
+        _ProgressTracker.reset_state(on_progress, total_bytes)
         
-        def progress_monitor():
-            """Background thread to monitor download progress."""
-            last_reported_percent = -1
-            while not stop_monitoring.is_set():
-                try:
-                    # Get size of incomplete files - check both root cache and model-specific cache
-                    incomplete_size = _get_incomplete_files_size(model_dir)
-                    # Also check the model-specific cache directory
-                    if model_cache_dir.exists():
-                        incomplete_size += _get_incomplete_files_size(model_cache_dir)
-                    
-                    # Get completed bytes safely
-                    with completed_lock:
-                        completed = completed_bytes
-                    
-                    # Total progress = completed files + current download progress
-                    current_progress = completed + incomplete_size
-                    
-                    # Calculate percentage
-                    if total_bytes > 0:
-                        percent = (current_progress / total_bytes) * 100
-                        percent = min(99.9, max(0, percent))
-                        
-                        # Update if progress changed by at least 0.1% to avoid too frequent updates
-                        if abs(percent - last_reported_percent) >= 0.1:
-                            last_reported_percent = percent
-                            
-                            if on_progress:
-                                with current_file_lock:
-                                    display_name = current_file_info['name'] or "files"
-                                
-                                downloaded_str = _format_bytes(current_progress)
-                                total_str = _format_bytes(total_bytes)
-                                on_progress(percent, f"Downloading {display_name} ({downloaded_str}/{total_str})")
-                    
-                    time.sleep(0.1)  # Check every 100ms for smoother updates
-                except Exception:
-                    time.sleep(0.5)
+        # Download each file
+        for file_info in files_to_download:
+            filename = file_info['filename']
+            file_size = file_info['size']
+            
+            # Clean filename for display
+            display_name = filename.split('/')[-1] if '/' in filename else filename
+            _ProgressTracker.set_current_file(display_name, file_size)
+            
+            # Download the file using our custom tqdm class for progress tracking
+            hf_hub_download(
+                repo_id=repo_name,
+                filename=filename,
+                cache_dir=str(model_dir),
+                local_files_only=False,
+                tqdm_class=_ProgressTracker,
+            )
         
-        # Start progress monitoring thread
-        monitor_thread = threading.Thread(target=progress_monitor, daemon=True)
-        monitor_thread.start()
-        
-        try:
-            # Download each file
-            for file_info in files_to_download:
-                filename = file_info['filename']
-                file_size = file_info['size']
-                
-                # Clean filename for display
-                display_name = filename.split('/')[-1] if '/' in filename else filename
-                with current_file_lock:
-                    current_file_info['name'] = display_name
-                    current_file_info['size'] = file_size
-                
-                # Download the file (this blocks until download completes)
-                hf_hub_download(
-                    repo_id=repo_name,
-                    filename=filename,
-                    cache_dir=str(model_dir),
-                    local_files_only=False,
-                )
-                
-                # Update completed bytes after file finishes
-                with completed_lock:
-                    completed_bytes += file_size
-                
-                # Force a progress update after file completes
-                if on_progress and total_bytes > 0:
-                    with completed_lock:
-                        completed = completed_bytes
-                    percent = (completed / total_bytes) * 100
-                    percent = min(99.9, max(0, percent))
-                    downloaded_str = _format_bytes(completed)
-                    total_str = _format_bytes(total_bytes)
-                    on_progress(percent, f"Downloaded {display_name} ({downloaded_str}/{total_str})")
-                
-        finally:
-            # Stop monitoring thread
-            stop_monitoring.set()
-            monitor_thread.join(timeout=2.0)
+        # Finalize progress tracking (handles cached files)
+        _ProgressTracker.finalize()
         
         if on_progress:
             on_progress(100, f"Download complete: {model_name}")
