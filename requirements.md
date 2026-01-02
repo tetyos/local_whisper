@@ -41,7 +41,7 @@ Local Whisper is a Windows speech-to-text (STT) application that allows users to
 - No external dependencies required for end users (bundled with PyInstaller)
 
 ### FR-7: Model Selection
-- Users shall be able to choose from all available faster-whisper models equivalents to OpenAI Whisper models (e.g., tiny, base, small, medium, large, large-v2, large-v3)
+- Users shall be able to choose from all available faster-whisper models equivalents to OpenAI Whisper models (e.g., tiny, base, small, medium, large-v3)
 - Only open-source models shall be available for selection (no proprietary models)
 - Models shall be stored in `%APPDATA%/local-whisper/models/`
 - Models shall NOT be automatically downloaded on first run or application start
@@ -83,7 +83,7 @@ Local Whisper is a Windows speech-to-text (STT) application that allows users to
 | Component | Technology | Purpose |
 |-----------|------------|---------|
 | Language | Python 3.11+ | Development language |
-| STT Model | faster-whisper (tiny, base, small, medium, large, large-v2, large-v3) | Speech recognition |
+| STT Model | faster-whisper (tiny, base, small, medium, large-v3) | Speech recognition |
 | Model Download | huggingface_hub | Download models from HuggingFace Hub |
 | Audio | sounddevice + numpy | Microphone capture |
 | Hotkey | keyboard | Global hotkey detection |

@@ -16,8 +16,6 @@ MODEL_REPO_MAP = {
     "base": "Systran/faster-whisper-base",
     "small": "Systran/faster-whisper-small",
     "medium": "Systran/faster-whisper-medium",
-    "large": "Systran/faster-whisper-large-v1",
-    "large-v2": "Systran/faster-whisper-large-v2",
     "large-v3": "Systran/faster-whisper-large-v3",
 }
 
@@ -266,9 +264,7 @@ class Transcriber:
         {"name": "base", "size": "~150 MB", "description": "Good balance"},
         {"name": "small", "size": "~500 MB", "description": "Better accuracy"},
         {"name": "medium", "size": "~1.5 GB", "description": "High accuracy"},
-        {"name": "large", "size": "~3 GB", "description": "Best accuracy (v1)"},
-        {"name": "large-v2", "size": "~3 GB", "description": "Improved large model"},
-        {"name": "large-v3", "size": "~3 GB", "description": "Latest large model"},
+        {"name": "large-v3", "size": "~3 GB", "description": "Best accuracy"},
     ]
     
     def __init__(self, model_size: str = "base", device: str = "auto"):
