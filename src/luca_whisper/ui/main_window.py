@@ -28,6 +28,7 @@ class MainWindow(QMainWindow):
             Qt.WindowType.WindowCloseButtonHint
         )
         
+        self._current_model: str = ""  # Track current model to avoid duplicate signals
         self._setup_ui()
         self._apply_styles()
         self._populate_models()
@@ -200,7 +201,10 @@ class MainWindow(QMainWindow):
         if index >= 0:
             model_name = self.model_combo.itemData(index)
             self._update_download_status(model_name)
-            self.model_changed.emit(model_name)
+            # Only emit signal if model actually changed (avoid duplicates)
+            if model_name != self._current_model:
+                self._current_model = model_name
+                self.model_changed.emit(model_name)
     
     def _update_download_status(self, model_name: str) -> None:
         """Update the download status indicator for the selected model."""
@@ -218,16 +222,20 @@ class MainWindow(QMainWindow):
     
     def set_selected_model(self, model_name: str) -> None:
         """
-        Set the selected model in the dropdown.
+        Set the selected model in the dropdown (programmatically, won't emit signal).
         
         Args:
             model_name: Name of the model to select
         """
+        self._current_model = model_name
+        # Block signals to prevent triggering model_changed when setting programmatically
+        self.model_combo.blockSignals(True)
         for i in range(self.model_combo.count()):
             if self.model_combo.itemData(i) == model_name:
                 self.model_combo.setCurrentIndex(i)
-                self._update_download_status(model_name)
                 break
+        self.model_combo.blockSignals(False)
+        self._update_download_status(model_name)
     
     def get_selected_model(self) -> str:
         """Get the currently selected model name."""

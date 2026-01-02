@@ -49,6 +49,7 @@ class LucaWhisperApp(QObject):
         # State
         self._state = AppState.LOADING
         self._lock = threading.Lock()
+        self._hotkey_registered = False
     
     @property
     def state(self) -> AppState:
@@ -67,9 +68,18 @@ class LucaWhisperApp(QObject):
         """Get the currently selected model name."""
         return self._selected_model
     
+    def _register_hotkey(self) -> None:
+        """Register the hotkey if not already registered."""
+        if not self._hotkey_registered:
+            self.hotkey_handler.register(self._on_hotkey_pressed)
+            self._hotkey_registered = True
+    
     def initialize(self) -> None:
         """Initialize the application (load model if available, register hotkey)."""
         self.state = AppState.LOADING
+        
+        # Register hotkey early so it's available
+        self._register_hotkey()
         
         # Check if the selected model is downloaded
         if is_model_downloaded(self._selected_model):
@@ -82,8 +92,6 @@ class LucaWhisperApp(QObject):
                 AppState.NO_MODEL, 
                 f"Model '{self._selected_model}' not downloaded. Select a model to download."
             )
-            # Still register hotkey so user knows it won't work yet
-            self.hotkey_handler.register(self._on_hotkey_pressed)
     
     def _load_model_async(self) -> None:
         """Load the model in a background thread."""
@@ -93,9 +101,6 @@ class LucaWhisperApp(QObject):
                     self.download_progress.emit(progress, message)
                 
                 self.transcriber.load_model(on_progress=on_progress)
-                
-                # Register hotkey
-                self.hotkey_handler.register(self._on_hotkey_pressed)
                 
                 self.state = AppState.IDLE
                 self.state_changed.emit(AppState.IDLE, "Ready")
