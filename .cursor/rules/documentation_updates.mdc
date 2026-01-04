@@ -1,0 +1,21 @@
+---
+description: Ensure requirements.md and tech.md are updated when new requirements or technical changes are discussed.
+globs: 
+  - requirements.md
+  - tech.md
+alwaysApply: true
+---
+
+# Documentation Update Rule
+
+## Context
+When the user provides new requirements or discusses architectural/technical changes in the chat.
+
+## Rules
+1. **New Requirements**: Any new functional or non-functional requirement mentioned by the user must be added to `requirements.md`.
+   - Use the existing format (e.g., `### FR-X: Name` or `### NFR-X: Name`).
+   - Keep it concise but complete.
+2. **Technical Changes**: Relevant technical or architectural changes should be added to `tech.md`.
+   - This includes changes to dependencies, component flow, state machine, or technical decisions.
+   - Do not make it super detailed; focus on the high-level technical impact.
+3. **Consistency**: Ensure that `requirements.md` and `tech.md` remain consistent with each other.
