@@ -41,6 +41,21 @@ class LocalWhisperApp(QObject):
         # Load selected model from settings
         self._selected_model = get_selected_model()
         
+        # Verify model exists, fallback if not
+        if self._selected_model and not is_model_downloaded(self._selected_model):
+            # Try to find another downloaded model
+            found_fallback = False
+            for model_info in Transcriber.get_available_models():
+                name = model_info['name']
+                if is_model_downloaded(name):
+                    self._selected_model = name
+                    set_selected_model(name)
+                    found_fallback = True
+                    break
+            
+            if not found_fallback:
+                self._selected_model = ""
+        
         # Initialize components
         self.audio_recorder = AudioRecorder(sample_rate=16000)
         self.transcriber = Transcriber(model_size=self._selected_model, device="auto")
@@ -98,7 +113,7 @@ class LocalWhisperApp(QObject):
             self.state = AppState.NO_MODEL
             self.state_changed.emit(
                 AppState.NO_MODEL, 
-                "No model selected"
+                "No model downloaded. Please select and download a model first."
             )
     
     def _load_model_async(self) -> None:

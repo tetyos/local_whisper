@@ -206,9 +206,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("local-whisper")
         # Set initial size larger for better model selector view
-        self.resize(420, 440)
+        self.resize(450, 450)
         # Set minimum size to prevent window from becoming too small
-        self.setMinimumSize(420, 440)
+        self.setMinimumSize(450, 450)
         self.setWindowFlags(
             Qt.WindowType.Window |
             Qt.WindowType.WindowMinimizeButtonHint |
