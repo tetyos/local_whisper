@@ -3,10 +3,10 @@
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
     QPushButton, QStackedWidget, QScrollArea, QButtonGroup, QRadioButton,
-    QProgressBar
+    QProgressBar, QStyle
 )
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont, QCloseEvent
+from PyQt6.QtCore import Qt, pyqtSignal, QPointF
+from PyQt6.QtGui import QFont, QCloseEvent, QPainter, QPixmap, QColor, QPen, QIcon, QPolygonF
 
 from ..transcriber import Transcriber
 
@@ -29,6 +29,45 @@ class ModelCard(QFrame):
         self.setObjectName("modelCard")
         self._setup_ui()
     
+    def _create_download_icon(self) -> QIcon:
+        """Create a custom circled download arrow icon."""
+        # Create a pixmap to draw on
+        size = 20
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Colors
+        color = QColor("#ffffff")  # White
+        
+        # Draw circle
+        pen = QPen(color, 1.5)
+        painter.setPen(pen)
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(1, 1, size-2, size-2)
+        
+        # Draw arrow
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(color)
+        
+        # Arrow shaft
+        center_x = size / 2
+        # Arrow pointing down: shaft vertical
+        painter.drawRect(int(center_x - 1.5), 5, 3, 6)
+        
+        # Arrow head
+        arrow_head = QPolygonF([
+            QPointF(center_x - 4, 11),
+            QPointF(center_x + 4, 11),
+            QPointF(center_x, 15)
+        ])
+        painter.drawPolygon(arrow_head)
+        
+        painter.end()
+        return QIcon(pixmap)
+
     def _setup_ui(self) -> None:
         """Set up the card UI."""
         layout = QVBoxLayout(self)
@@ -46,18 +85,12 @@ class ModelCard(QFrame):
         self.radio_button.toggled.connect(self._on_radio_toggled)
         top_row.addWidget(self.radio_button)
         
-        # Model display name and size
+        # Model display name
         name_label = QLabel(f"{self.model_display_name}")
         name_label.setObjectName("modelName")
         name_font = QFont("Segoe UI", 12, QFont.Weight.Bold)
         name_label.setFont(name_font)
         top_row.addWidget(name_label)
-        
-        size_label = QLabel(f"({self.model_size})")
-        size_label.setObjectName("modelSize")
-        size_font = QFont("Segoe UI", 10)
-        size_label.setFont(size_font)
-        top_row.addWidget(size_label)
         
         top_row.addStretch()
         
@@ -70,7 +103,8 @@ class ModelCard(QFrame):
         else:
             self.download_button = QPushButton("Download")
             self.download_button.setObjectName("downloadButton")
-            self.download_button.setFixedWidth(90)
+            self.download_button.setIcon(self._create_download_icon())
+            self.download_button.setFixedWidth(105)
             self.download_button.clicked.connect(self._on_download_clicked)
             self.status_label = None
             top_row.addWidget(self.download_button)
@@ -80,19 +114,21 @@ class ModelCard(QFrame):
         # Description row
         desc_layout = QHBoxLayout()
         desc_layout.setContentsMargins(28, 0, 0, 0)  # Indent to align with text after radio
+        desc_layout.setSpacing(10)
         
         desc_label = QLabel(self.model_description)
         desc_label.setObjectName("modelDescription")
         desc_font = QFont("Segoe UI", 9)
         desc_label.setFont(desc_font)
         desc_layout.addWidget(desc_label)
-        desc_layout.addStretch()
         
-        # Status text for not downloaded
-        if not self._is_downloaded:
-            not_downloaded_label = QLabel("Not downloaded")
-            not_downloaded_label.setObjectName("notDownloadedLabel")
-            desc_layout.addWidget(not_downloaded_label)
+        size_label = QLabel(f"({self.model_size})")
+        size_label.setObjectName("modelSize")
+        size_font = QFont("Segoe UI", 10)
+        size_label.setFont(size_font)
+        desc_layout.addWidget(size_label)
+        
+        desc_layout.addStretch()
         
         layout.addLayout(desc_layout)
         
@@ -146,15 +182,6 @@ class ModelCard(QFrame):
             # Find the top row layout and add the label
             top_layout = self.layout().itemAt(0).layout()
             top_layout.addWidget(self.status_label)
-        
-        # Remove "Not downloaded" label if present
-        desc_layout = self.layout().itemAt(1).layout()
-        for i in range(desc_layout.count()):
-            item = desc_layout.itemAt(i)
-            if item and item.widget():
-                widget = item.widget()
-                if widget.objectName() == "notDownloadedLabel":
-                    widget.setVisible(False)
     
     def is_downloaded(self) -> bool:
         """Check if this model is downloaded."""
@@ -179,9 +206,9 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("local-whisper")
         # Set initial size larger for better model selector view
-        self.resize(400, 400)
+        self.resize(420, 440)
         # Set minimum size to prevent window from becoming too small
-        self.setMinimumSize(400, 400)
+        self.setMinimumSize(420, 440)
         self.setWindowFlags(
             Qt.WindowType.Window |
             Qt.WindowType.WindowMinimizeButtonHint |
