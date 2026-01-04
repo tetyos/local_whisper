@@ -272,11 +272,11 @@ class Transcriber:
     
     # Available models with metadata
     AVAILABLE_MODELS = [
-        {"name": "tiny", "size": "~75 MB", "description": "Fastest, basic accuracy"},
-        {"name": "base", "size": "~150 MB", "description": "Good balance"},
-        {"name": "small", "size": "~500 MB", "description": "Better accuracy"},
-        {"name": "medium", "size": "~1.5 GB", "description": "High accuracy"},
-        {"name": "large-v3", "size": "~3 GB", "description": "Best accuracy"},
+        {"name": "tiny", "display_name": "OpenAI Whisper Tiny", "size": "~75 MB", "description": "Fastest, basic accuracy"},
+        {"name": "base", "display_name": "OpenAI Whisper Base", "size": "~150 MB", "description": "Good balance"},
+        {"name": "small", "display_name": "OpenAI Whisper Small", "size": "~500 MB", "description": "Better accuracy"},
+        {"name": "medium", "display_name": "OpenAI Whisper Medium", "size": "~1.5 GB", "description": "High accuracy"},
+        {"name": "large-v3", "display_name": "OpenAI Whisper Large V3", "size": "~3 GB", "description": "Best accuracy"},
     ]
     
     def __init__(self, model_size: str = "base", device: str = "auto"):

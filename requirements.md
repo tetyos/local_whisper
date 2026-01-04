@@ -45,16 +45,17 @@ Local Whisper is a Windows speech-to-text (STT) application that allows users to
 - Only open-source models shall be available for selection (no proprietary models)
 - Models shall be stored in `%APPDATA%/local-whisper/models/`
 - Models shall NOT be automatically downloaded on first run or application start
-- The main window shall display the currently selected model name and size (or "No model selected" if none)
+- The main window shall display the currently selected model's full display name (e.g., "OpenAI Whisper Small") without size (or "No model selected" if none)
 - The main window shall have a "Models" button that switches to a model selection view (within the same window)
 - The model selection view shall display all available models as a list with:
-  - Model name and size
+  - Full model display name (e.g., "OpenAI Whisper Small") and size (e.g., "~500 MB")
   - Short description of the model (e.g., "Best accuracy", "Fastest")
   - Download status: "Downloaded" label (green) for downloaded models, "Download" button for not-downloaded models
   - Radio button selection to choose which model to use
 - Each not-downloaded model shall have its own "Download" button to start downloading
 - When a download is in progress, all other download buttons shall be disabled (only one download at a time)
-- Download progress shall be displayed within the model card being downloaded
+- Download progress shall be displayed in a global progress bar at the bottom of the model selection view
+- The progress bar shall show detailed file information (e.g., "Downloading model.bin (1.2 GB/1.5 GB)")
 - The "Use this model" button shall only be enabled when a downloaded model is selected
 - A "Back" button shall return to the main view
 - The currently selected model shall be used for all transcription tasks

@@ -32,18 +32,19 @@ def main():
     # Create app controller
     controller = LocalWhisperApp()
     
-    def get_model_size(model_name: str) -> str:
-        """Get the size string for a model."""
+    def get_model_info(model_name: str) -> dict:
+        """Get the model info dict for a model."""
         for model in Transcriber.get_available_models():
             if model['name'] == model_name:
-                return model['size']
-        return ""
+                return model
+        return {}
     
     # Set initial model display
     if controller.selected_model:
+        model_info = get_model_info(controller.selected_model)
         window.set_current_model(
-            controller.selected_model, 
-            get_model_size(controller.selected_model)
+            controller.selected_model,
+            model_info.get('display_name', controller.selected_model)
         )
     else:
         window.set_current_model("", "")
@@ -79,7 +80,8 @@ def main():
     def on_model_ready(model_name: str):
         """Handle model loaded successfully."""
         # Update main window model display
-        window.set_current_model(model_name, get_model_size(model_name))
+        model_info = get_model_info(model_name)
+        window.set_current_model(model_name, model_info.get('display_name', model_name))
     
     def on_model_selected(model_name: str):
         """Handle model selection from window."""

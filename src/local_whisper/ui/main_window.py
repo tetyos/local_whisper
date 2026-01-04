@@ -20,6 +20,7 @@ class ModelCard(QFrame):
     def __init__(self, model_info: dict, is_current: bool = False, parent=None):
         super().__init__(parent)
         self.model_name = model_info['name']
+        self.model_display_name = model_info.get('display_name', model_info['name'])
         self.model_size = model_info['size']
         self.model_description = model_info['description']
         self._is_downloaded = Transcriber.is_model_downloaded(self.model_name)
@@ -45,8 +46,8 @@ class ModelCard(QFrame):
         self.radio_button.toggled.connect(self._on_radio_toggled)
         top_row.addWidget(self.radio_button)
         
-        # Model name and size
-        name_label = QLabel(f"{self.model_name}")
+        # Model display name and size
+        name_label = QLabel(f"{self.model_display_name}")
         name_label.setObjectName("modelName")
         name_font = QFont("Segoe UI", 12, QFont.Weight.Bold)
         name_label.setFont(name_font)
@@ -95,14 +96,6 @@ class ModelCard(QFrame):
         
         layout.addLayout(desc_layout)
         
-        # Progress bar (hidden by default, shown during download)
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setObjectName("cardProgressBar")
-        self.progress_bar.setVisible(False)
-        self.progress_bar.setTextVisible(True)
-        self.progress_bar.setFixedHeight(20)
-        layout.addWidget(self.progress_bar)
-        
         self._update_style()
     
     def _update_style(self) -> None:
@@ -141,18 +134,6 @@ class ModelCard(QFrame):
         """Enable or disable the download button."""
         if self.download_button:
             self.download_button.setEnabled(enabled)
-    
-    def show_progress(self, progress: float, message: str = "") -> None:
-        """Show download progress on this card."""
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setValue(int(progress))
-        if message:
-            # Extract just the percentage part for compact display
-            self.progress_bar.setFormat(f"{int(progress)}%")
-    
-    def hide_progress(self) -> None:
-        """Hide the progress bar."""
-        self.progress_bar.setVisible(False)
     
     def mark_as_downloaded(self) -> None:
         """Update the card to show downloaded state."""
@@ -197,19 +178,22 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("local-whisper")
-        self.setFixedSize(450, 520)
+        # Set initial size larger for better model selector view
+        self.resize(400, 400)
+        # Set minimum size to prevent window from becoming too small
+        self.setMinimumSize(400, 400)
         self.setWindowFlags(
             Qt.WindowType.Window |
             Qt.WindowType.WindowMinimizeButtonHint |
             Qt.WindowType.WindowCloseButtonHint
         )
         
-        self._current_model: str = ""
-        self._current_model_size: str = ""
-        self._selected_model: str = ""
+        self._current_model_name: str = ""  # Internal model name (e.g., "small")
+        self._current_model_display: str = ""  # Display name (e.g., "OpenAI Whisper Small")
+        self._selected_model: str = ""  # Internal model name of selected model in selector
         self._is_downloading = False
         self._downloading_model = ""
-        self._model_cards: dict[str, ModelCard] = {}
+        self._model_cards: dict[str, ModelCard] = {}  # Keyed by internal model name
         
         self._setup_ui()
         self._apply_styles()
@@ -251,6 +235,13 @@ class MainWindow(QMainWindow):
         self.title_label.setObjectName("titleLabel")
         layout.addWidget(self.title_label)
         
+        # Models menu button
+        self.models_button = QPushButton("Select model")
+        self.models_button.setObjectName("modelsButton")
+        self.models_button.setFixedHeight(36)
+        self.models_button.clicked.connect(self._on_models_button_clicked)
+        layout.addWidget(self.models_button)
+        
         # Model display frame (shows current model)
         model_display_frame = QFrame()
         model_display_frame.setObjectName("modelDisplayFrame")
@@ -275,13 +266,6 @@ class MainWindow(QMainWindow):
         model_display_layout.addWidget(self.model_display_label)
         
         layout.addWidget(model_display_frame)
-        
-        # Models menu button
-        self.models_button = QPushButton("Models")
-        self.models_button.setObjectName("modelsButton")
-        self.models_button.setFixedHeight(36)
-        self.models_button.clicked.connect(self._on_models_button_clicked)
-        layout.addWidget(self.models_button)
         
         # Status frame
         status_frame = QFrame()
@@ -363,7 +347,7 @@ class MainWindow(QMainWindow):
         # Create model cards
         models = Transcriber.get_available_models()
         for model in models:
-            is_current = model['name'] == self._current_model
+            is_current = model['name'] == self._current_model_name
             card = ModelCard(model, is_current=is_current)
             card.download_requested.connect(self._on_download_requested)
             card.selected.connect(self._on_model_card_selected)
@@ -374,6 +358,14 @@ class MainWindow(QMainWindow):
         self.scroll_layout.addStretch()
         scroll_area.setWidget(self.scroll_content)
         layout.addWidget(scroll_area)
+        
+        # Global progress bar at bottom (hidden by default, shown during download)
+        self.global_progress_bar = QProgressBar()
+        self.global_progress_bar.setObjectName("globalProgressBar")
+        self.global_progress_bar.setVisible(False)
+        self.global_progress_bar.setTextVisible(True)
+        self.global_progress_bar.setFixedHeight(24)
+        layout.addWidget(self.global_progress_bar)
         
         # Bottom action button
         self.use_button = QPushButton("Use this model")
@@ -519,6 +511,18 @@ class MainWindow(QMainWindow):
                 background-color: #00d4aa;
                 border-radius: 3px;
             }
+            #globalProgressBar {
+                background-color: #0f3460;
+                border: 1px solid #1a4a7a;
+                border-radius: 4px;
+                text-align: center;
+                color: #ffffff;
+                font-size: 11px;
+            }
+            #globalProgressBar::chunk {
+                background-color: #00d4aa;
+                border-radius: 3px;
+            }
             #useButton {
                 background-color: #00d4aa;
                 color: #1a1a2e;
@@ -556,9 +560,9 @@ class MainWindow(QMainWindow):
     def _on_models_button_clicked(self) -> None:
         """Handle Models button click - switch to model selector view."""
         # Update model cards to reflect current selection
-        self._selected_model = self._current_model
+        self._selected_model = self._current_model_name
         for name, card in self._model_cards.items():
-            card.set_selected(name == self._current_model)
+            card.set_selected(name == self._current_model_name)
         self._update_use_button_state()
         self.stacked_widget.setCurrentIndex(1)
     
@@ -597,22 +601,19 @@ class MainWindow(QMainWindow):
             self.use_button.setEnabled(True)
             self.use_button.setText("Use this model")
     
-    def set_current_model(self, model_name: str, model_size: str = "") -> None:
+    def set_current_model(self, model_name: str, display_name: str) -> None:
         """
         Set and display the currently selected model.
         
         Args:
-            model_name: Name of the model (e.g., "large-v3")
-            model_size: Size of the model (e.g., "~3 GB")
+            model_name: Internal model name (e.g., "small")
+            display_name: Display name of the model (e.g., "OpenAI Whisper Small")
         """
-        self._current_model = model_name
-        self._current_model_size = model_size
+        self._current_model_name = model_name
+        self._current_model_display = display_name
         
-        if model_name:
-            if model_size:
-                self.model_display_label.setText(f"{model_name} ({model_size})")
-            else:
-                self.model_display_label.setText(model_name)
+        if display_name:
+            self.model_display_label.setText(display_name)
             self.model_display_label.setStyleSheet(
                 "color: #00d4aa; background-color: transparent;"
             )
@@ -623,8 +624,8 @@ class MainWindow(QMainWindow):
             )
     
     def get_current_model(self) -> str:
-        """Get the currently displayed model name."""
-        return self._current_model
+        """Get the currently selected internal model name."""
+        return self._current_model_name
     
     def set_models_button_enabled(self, enabled: bool) -> None:
         """Enable or disable the Models button."""
@@ -645,14 +646,21 @@ class MainWindow(QMainWindow):
         self._update_use_button_state()
     
     def update_download_progress(self, model_name: str, progress: float, message: str) -> None:
-        """Update download progress for a specific model."""
-        if model_name in self._model_cards:
-            self._model_cards[model_name].show_progress(progress, message)
+        """Update download progress in the global progress bar."""
+        self.global_progress_bar.setVisible(True)
+        self.global_progress_bar.setValue(int(progress))
+        if message:
+            # Show detailed file info (e.g., "Downloading model.bin (1.2 GB/1.5 GB)")
+            self.global_progress_bar.setFormat(message)
+        else:
+            self.global_progress_bar.setFormat(f"{int(progress)}%")
     
     def download_complete(self, model_name: str) -> None:
         """Mark a model as downloaded."""
+        # Hide global progress bar
+        self.global_progress_bar.setVisible(False)
+        
         if model_name in self._model_cards:
-            self._model_cards[model_name].hide_progress()
             self._model_cards[model_name].mark_as_downloaded()
         
         self._is_downloading = False
