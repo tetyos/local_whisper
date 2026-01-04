@@ -1,6 +1,7 @@
 """Entry point for Local Whisper application."""
 
 import sys
+import os
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
@@ -12,6 +13,13 @@ from .ui.system_tray import SystemTray
 
 def main():
     """Main entry point."""
+    # Redirect stdout/stderr to devnull if they are None (windowed app)
+    # This prevents errors in libraries that try to print/log (like tqdm)
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, 'w')
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, 'w')
+
     # Enable high DPI scaling
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough

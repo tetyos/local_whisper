@@ -210,6 +210,10 @@ The application uses a state machine pattern with the following states:
 - Windows-specific optimizations
 - No need for complex Windows API calls
 
+### Windowed Application Behavior
+When built as a windowed application (PyInstaller `console=False`), `sys.stdout` and `sys.stderr` are set to `None` by the runtime.
+To prevent crashes in libraries that attempt to write to these streams (e.g., `tqdm`, `print` calls), the application redirects them to `os.devnull` at startup in `src/local_whisper/main.py`. This ensures stability even if libraries try to log output.
+
 ## File Size Considerations
 
 - **Base executable**: ~50-100MB (includes Python runtime and dependencies)

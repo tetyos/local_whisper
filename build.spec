@@ -2,6 +2,7 @@
 """PyInstaller spec file for Local Whisper."""
 
 from pathlib import Path
+from PyInstaller.utils.hooks import collect_data_files
 
 block_cipher = None
 
@@ -9,11 +10,16 @@ block_cipher = None
 project_root = Path(SPECPATH)
 icon_path = project_root / 'assets' / 'icon.ico'
 
+# Collect data files
+datas = []
+datas += collect_data_files('faster_whisper')
+datas += collect_data_files('huggingface_hub')
+
 a = Analysis(
-    [str(project_root / 'src' / 'local_whisper' / 'main.py')],
+    [str(project_root / 'src' / 'entry_point.py')],
     pathex=[str(project_root / 'src')],
     binaries=[],
-    datas=[],
+    datas=datas,
     hiddenimports=[
         'faster_whisper',
         'ctranslate2',
