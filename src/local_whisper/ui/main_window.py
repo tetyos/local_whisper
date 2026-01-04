@@ -303,7 +303,8 @@ class MainWindow(QMainWindow):
         # Status indicator
         self.status_label = QLabel("Ready")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        status_font = QFont("Segoe UI", 14)
+        self.status_label.setWordWrap(True)
+        status_font = QFont("Segoe UI", 12)
         self.status_label.setFont(status_font)
         self.status_label.setObjectName("statusLabel")
         status_layout.addWidget(self.status_label)
