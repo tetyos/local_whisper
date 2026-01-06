@@ -35,6 +35,7 @@ local_whisper/
 ├── build.spec                    # PyInstaller configuration for .exe build
 ├── build.bat                     # Windows batch script to build executable
 ├── run_dev.bat                   # Windows batch script for development mode
+├── run_tests.bat                 # Windows batch script to run test suite
 ├── README.md                     # User-facing documentation
 ├── tech.md                       # This file - technical documentation
 └── .gitignore                    # Git ignore patterns
@@ -121,7 +122,13 @@ src/tests/
 
 ### Running Tests
 
-Run in powershell:
+You can run the full test suite using the provided batch script:
+
+```bash
+run_tests.bat
+```
+
+Or manually in powershell:
 
 ```bash
 # Activate virtual environment
