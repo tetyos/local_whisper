@@ -354,13 +354,20 @@ class Transcriber:
         if on_progress:
             on_progress(100, "Model loaded successfully")
     
-    def transcribe(self, audio: np.ndarray, language: Optional[str] = None) -> str:
+    def transcribe(
+        self, 
+        audio: np.ndarray, 
+        language: Optional[str] = None,
+        on_progress: Optional[Callable[[float, float], None]] = None
+    ) -> str:
         """
         Transcribe audio to text.
         
         Args:
             audio: Audio data as numpy array (float32, 16kHz)
             language: Optional language code (e.g., 'en', 'de'). Auto-detect if None.
+            on_progress: Optional callback(progress_percent, audio_duration) called during transcription.
+                         progress_percent is 0-100 based on processed audio time.
         
         Returns:
             Transcribed text
@@ -370,6 +377,9 @@ class Transcriber:
         
         if len(audio) == 0:
             return ""
+        
+        # Calculate audio duration for progress tracking
+        audio_duration = len(audio) / 16000.0  # Assuming 16kHz sample rate
         
         # Transcribe the audio
         segments, info = self.model.transcribe(
@@ -383,10 +393,19 @@ class Transcriber:
             )
         )
         
-        # Combine all segments into a single string
+        # Combine all segments into a single string, tracking progress
         text_parts = []
         for segment in segments:
             text_parts.append(segment.text.strip())
+            
+            # Report progress based on segment end time
+            if on_progress and audio_duration > 0:
+                progress = min(100.0, (segment.end / audio_duration) * 100.0)
+                on_progress(progress, audio_duration)
+        
+        # Final progress update
+        if on_progress:
+            on_progress(100.0, audio_duration)
         
         return " ".join(text_parts)
     

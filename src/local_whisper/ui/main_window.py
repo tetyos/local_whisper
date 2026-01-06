@@ -309,6 +309,24 @@ class MainWindow(QMainWindow):
         self.status_label.setObjectName("statusLabel")
         status_layout.addWidget(self.status_label)
         
+        # Transcription progress bar (hidden by default)
+        self.transcription_progress_bar = QProgressBar()
+        self.transcription_progress_bar.setObjectName("transcriptionProgressBar")
+        self.transcription_progress_bar.setVisible(False)
+        self.transcription_progress_bar.setTextVisible(True)
+        self.transcription_progress_bar.setFixedHeight(20)
+        self.transcription_progress_bar.setFormat("Transcribing...")
+        status_layout.addWidget(self.transcription_progress_bar)
+        
+        # ETA label (hidden by default)
+        self.eta_label = QLabel("")
+        self.eta_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.eta_label.setObjectName("etaLabel")
+        eta_font = QFont("Segoe UI", 10)
+        self.eta_label.setFont(eta_font)
+        self.eta_label.setVisible(False)
+        status_layout.addWidget(self.eta_label)
+        
         layout.addWidget(status_frame)
         
         # Hotkey hint
@@ -463,6 +481,24 @@ class MainWindow(QMainWindow):
             #hotkeyLabel {
                 color: #888899;
                 background-color: transparent;
+            }
+            #transcriptionProgressBar {
+                background-color: #0f3460;
+                border: 1px solid #1a4a7a;
+                border-radius: 4px;
+                text-align: center;
+                color: #ffffff;
+                font-size: 11px;
+            }
+            #transcriptionProgressBar::chunk {
+                background-color: #00d4aa;
+                border-radius: 3px;
+            }
+            #etaLabel {
+                color: #888899;
+                background-color: transparent;
+                font-size: 11px;
+                margin-top: 2px;
             }
             #dialogTitle {
                 color: #00d4aa;
@@ -703,15 +739,21 @@ class MainWindow(QMainWindow):
         
         self._update_use_button_state()
     
-    def set_status(self, status: str, is_recording: bool = False) -> None:
+    def set_status(self, status: str, is_recording: bool = False, is_transcribing: bool = False) -> None:
         """
         Update the status display.
         
         Args:
             status: Status text to display
             is_recording: Whether currently recording (changes styling)
+            is_transcribing: Whether currently transcribing (shows progress bar)
         """
         self.status_label.setText(status)
+        
+        # Show/hide transcription progress UI based on state
+        if not is_transcribing:
+            self.transcription_progress_bar.setVisible(False)
+            self.eta_label.setVisible(False)
         
         if is_recording:
             self.status_label.setStyleSheet("""
@@ -725,6 +767,44 @@ class MainWindow(QMainWindow):
                 background-color: transparent;
                 font-weight: normal;
             """)
+    
+    def update_transcription_progress(self, progress: float, elapsed: float, eta: float) -> None:
+        """
+        Update transcription progress display with ETA.
+        
+        Args:
+            progress: Transcription progress (0-100)
+            elapsed: Elapsed time in seconds
+            eta: Estimated time remaining in seconds
+        """
+        # Show progress bar and ETA
+        self.transcription_progress_bar.setVisible(True)
+        self.eta_label.setVisible(True)
+        
+        # Update progress bar
+        # If progress is 0, we can show a minimal amount or "indeterminate" look
+        # But keeping it 0 is fine if the ETA updates
+        self.transcription_progress_bar.setValue(int(progress))
+        self.transcription_progress_bar.setFormat(f"Transcribing... {int(progress)}%")
+        
+        # Format ETA nicely - Industry standard "Time remaining: X"
+        if eta < 1 and progress < 100:
+            self.eta_label.setText("Finishing up...")
+        else:
+            eta_text = self._format_time(eta)
+            self.eta_label.setText(f"Estimated time remaining: {eta_text}")
+    
+    @staticmethod
+    def _format_time(seconds: float) -> str:
+        """Format seconds into a human-readable string."""
+        if seconds < 1:
+            return "less than 1s"
+        elif seconds < 60:
+            return f"{int(seconds)}s"
+        else:
+            mins = int(seconds // 60)
+            secs = int(seconds % 60)
+            return f"{mins}m {secs}s"
     
     def set_loading(self, message: str) -> None:
         """Show loading state."""

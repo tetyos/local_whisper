@@ -172,9 +172,28 @@ The application uses a state machine pattern with the following states:
 - **LOADING**: Initial model download and setup
 - **IDLE**: Ready to record
 - **RECORDING**: Actively capturing audio
-- **TRANSCRIBING**: Processing audio with Whisper
+- **TRANSCRIBING**: Processing audio with Whisper (shows ETA)
 - **TYPING**: Inserting text into active window
+- **DOWNLOADING**: Downloading a model
+- **NO_MODEL**: No model selected/downloaded
 - **ERROR**: Error state with recovery
+
+### Transcription Time Estimation
+
+The application provides estimated remaining time during transcription:
+
+1. **Historical Data**: Transcription times are stored per model in `%APPDATA%/local-whisper/transcription_stats.json`
+2. **Estimation Algorithm**:
+   - Calculates average ratio: transcription_time / audio_duration
+   - Uses historical data if available (last 20 samples per model)
+   - Falls back to default estimates based on model size:
+     - tiny: 0.3x (30% of audio duration)
+     - base: 0.5x
+     - small: 1.0x (real-time)
+     - medium: 2.5x
+     - large-v3: 5.0x
+3. **Progress Tracking**: Uses segment timestamps from faster-whisper to track progress during transcription
+4. **UI Display**: Shows progress bar with percentage, elapsed time, and estimated remaining time
 
 ### Threading Model
 
@@ -213,6 +232,12 @@ The application uses a state machine pattern with the following states:
 ### Windowed Application Behavior
 When built as a windowed application (PyInstaller `console=False`), `sys.stdout` and `sys.stderr` are set to `None` by the runtime.
 To prevent crashes in libraries that attempt to write to these streams (e.g., `tqdm`, `print` calls), the application redirects them to `os.devnull` at startup in `src/local_whisper/main.py`. This ensures stability even if libraries try to log output.
+
+## Data Storage
+
+- **Settings**: `%APPDATA%/local-whisper/settings.json` - User preferences (selected model)
+- **Transcription Stats**: `%APPDATA%/local-whisper/transcription_stats.json` - Historical transcription times for ETA estimation
+- **Models**: `%APPDATA%/local-whisper/models/` - Downloaded Whisper models (HuggingFace cache format)
 
 ## File Size Considerations
 

@@ -3,6 +3,7 @@
 from enum import Enum, auto
 from typing import Optional
 import threading
+import time
 
 from PyQt6.QtCore import QObject, pyqtSignal, QTimer
 
@@ -10,7 +11,10 @@ from .audio_recorder import AudioRecorder
 from .transcriber import Transcriber, is_model_downloaded, download_model
 from .hotkey_handler import HotkeyHandler
 from .text_output import TextOutput
-from .settings import get_selected_model, set_selected_model
+from .settings import (
+    get_selected_model, set_selected_model,
+    record_transcription_time, get_estimated_transcription_time
+)
 
 
 class AppState(Enum):
@@ -34,6 +38,12 @@ class LocalWhisperApp(QObject):
     download_progress = pyqtSignal(str, float, str)  # model_name, progress (0-100), message
     download_complete = pyqtSignal(str)  # model_name - emitted when download finishes
     model_ready = pyqtSignal(str)  # model_name - emitted when model is loaded into memory
+    transcription_progress = pyqtSignal(float, float, float)  # progress (0-100), elapsed_seconds, eta_seconds
+    
+    # Internal signals for thread-safe operations
+    _update_progress = pyqtSignal(float, float)
+    _start_progress_timer = pyqtSignal(int)
+    _stop_progress_timer = pyqtSignal()
     
     def __init__(self):
         super().__init__()
@@ -67,6 +77,18 @@ class LocalWhisperApp(QObject):
         self._lock = threading.Lock()
         self._hotkey_registered = False
         self._downloading_model: str = ""  # Track which model is being downloaded
+        
+        # Transcription progress tracking
+        self._transcription_start_time: float = 0.0
+        self._transcription_estimated_time: float = 0.0
+        self._transcription_progress: float = 0.0
+        self._progress_timer = QTimer()
+        self._progress_timer.timeout.connect(self._update_elapsed_time)
+        
+        # Connect internal signals for thread-safe updates
+        self._update_progress.connect(self._on_progress_from_thread)
+        self._start_progress_timer.connect(self._on_start_progress_timer)
+        self._stop_progress_timer.connect(self._on_stop_progress_timer)
     
     @property
     def state(self) -> AppState:
@@ -95,6 +117,48 @@ class LocalWhisperApp(QObject):
         if not self._hotkey_registered:
             self.hotkey_handler.register(self._on_hotkey_pressed)
             self._hotkey_registered = True
+    
+    def _update_elapsed_time(self) -> None:
+        """Timer callback to update elapsed time during transcription."""
+        if self._transcription_start_time > 0:
+            elapsed = time.time() - self._transcription_start_time
+            
+            # Calculate remaining time and progress
+            if self._transcription_progress > 0:
+                # We have real progress from segments
+                total_estimated = elapsed / (self._transcription_progress / 100.0)
+                remaining = max(0, total_estimated - elapsed)
+                current_progress = self._transcription_progress
+            else:
+                # No segments finished yet (or single segment)
+                # Estimate based on expected duration
+                # Allow progress to move up to 95% based on time
+                if self._transcription_estimated_time > 0:
+                    time_progress = (elapsed / self._transcription_estimated_time) * 100.0
+                    current_progress = min(95.0, time_progress)
+                    remaining = max(0, self._transcription_estimated_time - elapsed)
+                else:
+                    current_progress = 0.0
+                    remaining = 0.0
+            
+            # If we've exceeded estimate but still running, show indeterminate/finishing state
+            # by keeping remaining at 0 (handled by max(0, ...))
+            
+            self.transcription_progress.emit(current_progress, elapsed, remaining)
+    
+    def _on_progress_from_thread(self, progress: float, audio_duration: float) -> None:
+        """Handle progress updates from background thread (thread-safe via signal)."""
+        self._transcription_progress = progress
+    
+    def _on_start_progress_timer(self, interval: int) -> None:
+        """Start the progress timer (called from main thread via signal)."""
+        self._transcription_start_time = time.time()
+        self._progress_timer.start(interval)
+    
+    def _on_stop_progress_timer(self) -> None:
+        """Stop the progress timer (called from main thread via signal)."""
+        self._progress_timer.stop()
+        self._transcription_start_time = 0.0
     
     def initialize(self) -> None:
         """Initialize the application (load model if available, register hotkey)."""
@@ -261,13 +325,40 @@ class LocalWhisperApp(QObject):
                 self.state_changed.emit(AppState.IDLE, "No audio recorded. Ready.")
                 return
             
+            # Calculate audio duration and get estimated time
+            audio_duration = len(audio_data) / 16000.0  # 16kHz sample rate
+            estimated_time = get_estimated_transcription_time(self._selected_model, audio_duration)
+            
             self.state = AppState.TRANSCRIBING
             self.state_changed.emit(AppState.TRANSCRIBING, "Transcribing...")
             
+            # Initialize progress tracking
+            self._transcription_estimated_time = estimated_time
+            self._transcription_progress = 0.0
+            
+            # Emit initial progress with ETA
+            self.transcription_progress.emit(0.0, 0.0, estimated_time)
+            
+            # Start timer to update elapsed time every 100ms (thread-safe via signal)
+            # We use 100ms for smoother UI updates
+            self._start_progress_timer.emit(100)
+            
             # Transcribe in background thread
             def transcribe_and_type():
+                def on_progress(progress: float, audio_dur: float):
+                    """Handle transcription progress updates (from background thread)."""
+                    # Use signal to update progress thread-safely
+                    self._update_progress.emit(progress, audio_dur)
+                
                 try:
-                    text = self.transcriber.transcribe(audio_data)
+                    text = self.transcriber.transcribe(audio_data, on_progress=on_progress)
+                    
+                    # Record actual transcription time for future estimates
+                    elapsed_time = time.time() - self._transcription_start_time
+                    record_transcription_time(self._selected_model, audio_duration, elapsed_time)
+                    
+                    # Stop the progress timer (thread-safe via signal)
+                    self._stop_progress_timer.emit()
                     
                     if text.strip():
                         self.state = AppState.TYPING
@@ -280,6 +371,7 @@ class LocalWhisperApp(QObject):
                     self.state_changed.emit(AppState.IDLE, "Ready")
                     
                 except Exception as e:
+                    self._stop_progress_timer.emit()
                     self.state = AppState.ERROR
                     self.error_occurred.emit(f"Transcription failed: {str(e)}")
                     QTimer.singleShot(2000, self._recover_to_idle)

@@ -72,6 +72,17 @@ Local Whisper is a Windows speech-to-text (STT) application that allows users to
   - Loading phase: After model is selected, main view shows "Loading {model} into memory..." status text
 - The progress bar shall update smoothly during large file downloads, not just between files
 
+### FR-9: Transcription Time Estimation
+- During transcription, the application shall display an estimated time remaining
+- The estimation shall be based on:
+  - Audio duration being transcribed
+  - Historical transcription times for the current model (stored locally)
+  - Default model-based estimates if no history is available (larger models = longer times)
+- A progress bar shall show transcription progress (based on processed audio segments)
+- The status display shall show: elapsed time and estimated remaining time
+- Transcription times shall be recorded and stored to improve future estimates
+- The application shall store up to 20 recent transcription samples per model
+
 ## Non-Functional Requirements
 
 ### NFR-1: Performance

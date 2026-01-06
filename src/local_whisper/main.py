@@ -61,7 +61,8 @@ def main():
     def on_state_changed(state: AppState, message: str):
         """Handle state changes."""
         is_recording = state == AppState.RECORDING
-        window.set_status(message, is_recording=is_recording)
+        is_transcribing = state == AppState.TRANSCRIBING
+        window.set_status(message, is_recording=is_recording, is_transcribing=is_transcribing)
         tray.set_recording(is_recording)
         
         # Enable/disable models button based on state
@@ -71,6 +72,10 @@ def main():
         # Show loading state
         if state == AppState.LOADING:
             window.set_loading(message)
+    
+    def on_transcription_progress(progress: float, elapsed: float, eta: float):
+        """Handle transcription progress updates with ETA."""
+        window.update_transcription_progress(progress, elapsed, eta)
     
     def on_error(message: str):
         """Handle errors."""
@@ -126,6 +131,7 @@ def main():
     controller.download_progress.connect(on_download_progress)
     controller.download_complete.connect(on_download_complete)
     controller.model_ready.connect(on_model_ready)
+    controller.transcription_progress.connect(on_transcription_progress)
     
     window.model_selected.connect(on_model_selected)
     window.download_requested.connect(on_download_requested)
