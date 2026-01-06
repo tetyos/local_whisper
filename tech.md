@@ -5,18 +5,29 @@
 ```
 local_whisper/
 ├── src/
-│   └── local_whisper/
-│       ├── __init__.py           # Package initialization with version info
-│       ├── main.py               # Application entry point
-│       ├── app.py                # Main application controller (state machine)
-│       ├── audio_recorder.py     # Microphone audio capture module
-│       ├── transcriber.py        # Whisper model integration for STT
-│       ├── hotkey_handler.py     # Global Ctrl+Space hotkey listener
-│       ├── text_output.py           # Text typing into active window
-│       └── ui/
-│           ├── __init__.py       # UI package init
-│           ├── main_window.py    # PyQt6 main window UI
-│           └── system_tray.py    # System tray icon and menu
+│   ├── local_whisper/
+│   │   ├── __init__.py           # Package initialization with version info
+│   │   ├── main.py               # Application entry point
+│   │   ├── app.py                # Main application controller (state machine)
+│   │   ├── audio_recorder.py     # Microphone audio capture module
+│   │   ├── transcriber.py        # Whisper model integration for STT
+│   │   ├── hotkey_handler.py     # Global Ctrl+Space hotkey listener
+│   │   ├── text_output.py        # Text typing into active window
+│   │   └── ui/
+│   │       ├── __init__.py       # UI package init
+│   │       ├── main_window.py    # PyQt6 main window UI
+│   │       └── system_tray.py    # System tray icon and menu
+│   └── tests/                    # Test suite
+│       ├── __init__.py
+│       ├── conftest.py           # Shared pytest fixtures
+│       ├── test_settings.py      # Settings unit tests
+│       ├── test_transcriber.py   # Transcriber tests
+│       ├── test_audio_recorder.py
+│       ├── test_hotkey_handler.py
+│       ├── test_text_output.py
+│       ├── test_app.py           # Integration tests
+│       ├── test_main_window.py   # UI tests
+│       └── test_system_tray.py
 ├── assets/
 │   └── create_icon.py            # Script to generate application icon
 ├── requirements.txt              # Python package dependencies
@@ -87,6 +98,99 @@ python -m src.local_whisper.main
 # Or build the executable
 pyinstaller build.spec
 ```
+
+## Testing
+
+The project includes a comprehensive test suite to ensure functionality remains intact after refactoring or UI changes.
+
+### Test Structure
+
+```
+src/tests/
+├── __init__.py
+├── conftest.py              # Shared pytest fixtures
+├── test_settings.py         # Settings module unit tests
+├── test_transcriber.py      # Transcriber utility tests  
+├── test_audio_recorder.py   # Audio recorder tests (mocked)
+├── test_hotkey_handler.py   # Hotkey handler tests (mocked)
+├── test_text_output.py      # Text output tests (mocked)
+├── test_app.py              # App integration tests
+├── test_main_window.py      # MainWindow UI tests
+└── test_system_tray.py      # System tray UI tests
+```
+
+### Running Tests
+
+Run in powershell:
+
+```bash
+# Activate virtual environment
+venv\Scripts\activate
+
+# Install test dependencies (if not already installed)
+pip install -r requirements.txt
+
+# Run all tests
+pytest src/tests/
+
+# Run with verbose output
+pytest src/tests/ -v
+
+# Run with coverage report
+pytest src/tests/ --cov=src/local_whisper --cov-report=html
+
+# Run specific test file
+pytest src/tests/test_settings.py -v
+
+# Run tests matching a pattern
+pytest src/tests/ -k "test_state"
+```
+
+### Test Categories
+
+1. **Unit Tests** - Test individual components in isolation:
+   - `test_settings.py` - Settings persistence and transcription stats
+   - `test_transcriber.py` - Model utilities and byte formatting
+   - `test_audio_recorder.py` - Audio recording state management
+   - `test_hotkey_handler.py` - Hotkey registration lifecycle
+   - `test_text_output.py` - Text typing functionality
+
+2. **Integration Tests** - Test component interactions:
+   - `test_app.py` - State machine transitions, signal emissions
+
+3. **UI Tests** - Test PyQt6 GUI components (using pytest-qt):
+   - `test_main_window.py` - Main window and model selector
+   - `test_system_tray.py` - System tray icon and menu
+
+### Test Dependencies
+
+The following packages are required for testing (included in `requirements.txt`):
+- `pytest>=8.0.0` - Test framework
+- `pytest-qt>=4.4.0` - PyQt6 testing support
+- `pytest-cov>=4.1.0` - Coverage reporting
+- `pytest-mock>=3.12.0` - Mocking utilities
+
+### Mocking Strategy
+
+Tests use extensive mocking to avoid hardware/external dependencies:
+- **sounddevice** - Mocked to avoid microphone access
+- **keyboard** - Mocked to avoid global hotkey registration
+- **pyautogui** - Mocked to avoid keyboard simulation
+- **faster-whisper** - Mocked to avoid loading ML models
+- **huggingface_hub** - Mocked to avoid network requests
+
+### Coverage Goals
+
+| Component | Target | Priority |
+|-----------|--------|----------|
+| settings.py | 95%+ | High |
+| app.py | 90%+ | High |
+| main_window.py | 80%+ | High |
+| transcriber.py | 90%+ | Medium |
+| audio_recorder.py | 80%+ | Medium |
+| hotkey_handler.py | 85%+ | Medium |
+| text_output.py | 80%+ | Low |
+| system_tray.py | 70%+ | Low |
 
 ## Dependencies
 

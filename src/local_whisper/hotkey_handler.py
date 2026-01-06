@@ -18,7 +18,7 @@ class HotkeyHandler:
         self.hotkey = hotkey
         self._callback: Optional[Callable[[], None]] = None
         self._registered = False
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
     
     def register(self, callback: Callable[[], None]) -> None:
         """
