@@ -244,16 +244,6 @@ def fake_downloaded_model(temp_model_dir: Path) -> str:
 # PyQt6 Fixtures (requires pytest-qt)
 # ============================================================================
 
-@pytest.fixture
-def qapp(qtbot):
-    """
-    Provide the QApplication instance.
-    
-    Note: pytest-qt's qtbot fixture already handles QApplication creation.
-    """
-    from PyQt6.QtWidgets import QApplication
-    return QApplication.instance()
-
 
 # ============================================================================
 # App Component Fixtures

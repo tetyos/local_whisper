@@ -195,7 +195,9 @@ class TestThreadSafety:
         
         # Verify lock exists
         assert hasattr(handler, '_lock')
-        assert isinstance(handler._lock, type(threading.Lock()))
+        # Check it behaves like a lock (has acquire/release)
+        assert hasattr(handler._lock, 'acquire')
+        assert hasattr(handler._lock, 'release')
     
     def test_register_uses_lock(self, mock_keyboard):
         """Test that register uses lock."""

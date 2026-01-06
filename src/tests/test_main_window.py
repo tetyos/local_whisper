@@ -28,6 +28,7 @@ def main_window(qtbot, mock_transcriber):
     """Create a MainWindow instance for testing."""
     window = MainWindow()
     qtbot.addWidget(window)
+    window.show()
     return window
 
 
@@ -203,6 +204,9 @@ class TestMainWindowDownloading:
     
     def test_update_download_progress(self, main_window):
         """Test download progress update."""
+        # Switch to model selector view so progress bar can be visible
+        main_window.stacked_widget.setCurrentIndex(1)
+        
         main_window.update_download_progress("base", 50.0, "Downloading model.bin")
         
         assert main_window.global_progress_bar.isVisible()

@@ -279,7 +279,7 @@ class TestDownloadModel:
         
         mock_api = MagicMock()
         mock_api.repo_info = mock_repo_info
-        monkeypatch.setattr("huggingface_hub.HfApi", lambda: mock_api)
+        monkeypatch.setattr("local_whisper.transcriber.HfApi", lambda: mock_api)
         
         progress_calls = []
         def on_progress(percent, message):
