@@ -319,6 +319,7 @@ class LocalWhisperApp(QObject):
         try:
             # Stop recording
             audio_data = self.audio_recorder.stop_recording()
+            print(f"DEBUG: Recorded {len(audio_data)} samples")
             
             if len(audio_data) == 0:
                 self.state = AppState.IDLE
@@ -351,7 +352,9 @@ class LocalWhisperApp(QObject):
                     self._update_progress.emit(progress, audio_dur)
                 
                 try:
+                    print("DEBUG: Starting transcription...")
                     text = self.transcriber.transcribe(audio_data, on_progress=on_progress)
+                    print(f"DEBUG: Transcription result: '{text}'")
                     
                     # Record actual transcription time for future estimates
                     elapsed_time = time.time() - self._transcription_start_time
@@ -361,11 +364,14 @@ class LocalWhisperApp(QObject):
                     self._stop_progress_timer.emit()
                     
                     if text.strip():
+                        print("DEBUG: Text is not empty, typing...")
                         self.state = AppState.TYPING
                         self.state_changed.emit(AppState.TYPING, "Typing...")
                         
                         # Type the text
                         self.text_output.type_text(text.strip())
+                    else:
+                        print("DEBUG: Text is empty")
                     
                     self.state = AppState.IDLE
                     self.state_changed.emit(AppState.IDLE, "Ready")
