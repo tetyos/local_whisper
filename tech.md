@@ -57,9 +57,9 @@ local_whisper/
    - Press `Ctrl+C` to stop
 
 3. **First run:**
-   - The Whisper base model (~150MB) will be downloaded automatically
+   - The application starts in "No Model" state
+   - You must first select and download a model (e.g., base model ~150MB)
    - Model is stored in `%APPDATA%\local-whisper\models\`
-   - This may take a few minutes depending on your internet connection
 
 ### Building the Installer (.exe)
 
@@ -77,7 +77,7 @@ local_whisper/
 3. **Distribution:**
    - The `.exe` file is self-contained (no Python installation required)
    - Users can run it directly without any setup
-   - First run will still download the Whisper model
+   - First run will ask the user to download a model
 
 ### Manual Setup (Alternative)
 
@@ -280,7 +280,7 @@ App returns to idle state
 ### State Machine
 
 The application uses a state machine pattern with the following states:
-- **LOADING**: Initial model download and setup
+- **LOADING**: Loading model into memory
 - **IDLE**: Ready to record
 - **RECORDING**: Actively capturing audio
 - **TRANSCRIBING**: Processing audio with Whisper (shows ETA)
@@ -353,7 +353,7 @@ To prevent crashes in libraries that attempt to write to these streams (e.g., `t
 ## File Size Considerations
 
 - **Base executable**: ~50-100MB (includes Python runtime and dependencies)
-- **Whisper base model**: ~150MB (downloaded on first run)
+- **Whisper base model**: ~150MB (downloaded manually)
 - **Total disk space**: ~250MB after first run
 
 ## Performance Notes

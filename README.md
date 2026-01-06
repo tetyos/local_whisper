@@ -1,6 +1,6 @@
 # Local Whisper
 
-A simple speech-to-text application for Windows using OpenAI's Whisper model.
+A simple speech-to-text application for Windows powered by [faster-whisper](https://github.com/SYSTRAN/faster-whisper), an optimized version of OpenAI's Whisper model.
 
 ## Features
 
@@ -20,11 +20,20 @@ A simple speech-to-text application for Windows using OpenAI's Whisper model.
 
 ### From Source
 
+For development, you can use the provided helper script:
+
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/local-whisper.git
 cd local-whisper
 
+# Run the development script (handles venv setup and dependencies)
+run_dev.bat
+```
+
+Or setup manually:
+
+```bash
 # Create virtual environment
 python -m venv venv
 venv\Scripts\activate
@@ -39,7 +48,7 @@ python -m src.local_whisper.main
 ## Usage
 
 1. Launch the application
-2. The app will download the Whisper model on first run (~150MB)
+2. On first run, you will need to select and download a model (the base model is ~150MB)
 3. Press `Ctrl+Space` to start recording
 4. Speak your text
 5. Press `Ctrl+Space` again to stop and transcribe
@@ -70,5 +79,5 @@ MIT License - See LICENSE file for details.
 ## Acknowledgments
 
 - [OpenAI Whisper](https://github.com/openai/whisper) - Speech recognition model
-- [faster-whisper](https://github.com/guillaumekln/faster-whisper) - Optimized Whisper implementation
+- [faster-whisper](https://github.com/SYSTRAN/faster-whisper) - Optimized Whisper implementation
 
