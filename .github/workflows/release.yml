@@ -52,7 +52,7 @@ jobs:
           "$hash  local-whisper.exe" | Out-File -FilePath "dist\local-whisper.exe.sha256" -Encoding utf8
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: local-whisper-windows
           path: |
