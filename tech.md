@@ -79,6 +79,39 @@ local_whisper/
    - Users can run it directly without any setup
    - First run will ask the user to download a model
 
+### Automated Releases (GitHub Actions)
+
+The project uses GitHub Actions to automatically build and release executables.
+
+**Creating a Release:**
+```bash
+# Tag a commit with a version number
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This triggers the release workflow which:
+1. Checks out the tagged source code
+2. Sets up Python and installs dependencies
+3. Runs the test suite
+4. Builds the executable using PyInstaller
+5. Generates SHA256 checksum for verification
+6. Creates a GitHub Release with the executable attached
+
+**Workflow Files:**
+- `.github/workflows/release.yml` - Main build and release workflow
+- `.github/dependabot.yml` - Automated dependency security updates
+
+**Security Features:**
+- Builds run on clean GitHub-hosted VMs (no local machine contamination)
+- SHA256 checksums for download verification
+- Dependabot monitors for vulnerable dependencies
+- Full build logs are publicly auditable
+- Exact source commit is linked to each release
+
+**Pre-release Versions:**
+Tags containing `-alpha`, `-beta`, or `-rc` are automatically marked as pre-releases.
+
 ### Manual Setup (Alternative)
 
 If you prefer to set up manually:
