@@ -86,6 +86,10 @@ class MainWindow(QMainWindow):
     def _show_main_view(self) -> None:
         """Switch to main view."""
         self.stacked_widget.setCurrentIndex(self.VIEW_MAIN)
+        
+        # Clear focus to prevent accidental button activation (e.g. when using hotkeys)
+        if self.focusWidget():
+            self.focusWidget().clearFocus()
     
     def _on_model_selected(self, model_name: str) -> None:
         """Handle model selection from selector view."""
