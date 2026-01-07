@@ -14,9 +14,12 @@ local_whisper/
 │   │   ├── hotkey_handler.py     # Global Ctrl+Space hotkey listener
 │   │   ├── text_output.py        # Text typing into active window
 │   │   └── ui/
-│   │       ├── __init__.py       # UI package init
-│   │       ├── main_window.py    # PyQt6 main window UI
-│   │       └── system_tray.py    # System tray icon and menu
+│   │       ├── __init__.py             # UI package init
+│   │       ├── main_window.py          # Main window coordinator
+│   │       ├── main_view.py            # Main status view widget
+│   │       ├── model_selector_view.py  # Model selection view widget
+│   │       ├── styles.py               # Shared CSS styles module
+│   │       └── system_tray.py          # System tray icon and menu
 │   └── tests/                    # Test suite
 │       ├── __init__.py
 │       ├── conftest.py           # Shared pytest fixtures
@@ -287,6 +290,35 @@ Tests use extensive mocking to avoid hardware/external dependencies:
 **Used in:** `assets/create_icon.py`
 
 ## Architecture Overview
+
+### UI Architecture
+
+The UI uses a modular view-based architecture for maintainability:
+
+```
+MainWindow (QMainWindow)
+├── QStackedWidget (view container)
+│   ├── MainView - Status display, model info, hotkey hints
+│   ├── ModelSelectorView - Model list, download, selection
+│   └── [Future views can be added here]
+└── Coordinates navigation and state between views
+```
+
+**Key Components:**
+
+| File | Purpose |
+|------|---------|
+| `main_window.py` | Window coordinator, manages `QStackedWidget`, routes signals |
+| `main_view.py` | Main status view with recording state, transcription progress |
+| `model_selector_view.py` | Model cards, download progress, model selection |
+| `styles.py` | Centralized CSS styles and color palette |
+| `system_tray.py` | System tray icon and context menu |
+
+**Adding New Views:**
+1. Create a new view widget in `ui/` (e.g., `settings_view.py`)
+2. Add view to `QStackedWidget` in `MainWindow._setup_ui()`
+3. Add navigation signals/methods to coordinate switching
+4. Import styles from `styles.py` for consistency
 
 ### Component Flow
 
