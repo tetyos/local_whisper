@@ -238,6 +238,44 @@ MODEL_CARD_UNSELECTED_STYLE = f"""
     }}
 """
 
+# Floating indicator styles (applied inline in the widget)
+FLOATING_INDICATOR_STYLES = f"""
+    #floatingContainer {{
+        background-color: rgba(26, 26, 46, 240);
+        border: 2px solid {COLORS["border_hover"]};
+        border-radius: 10px;
+    }}
+    #floatingRecordingLabel {{
+        color: {COLORS["recording"]};
+        font-size: 12px;
+        font-weight: bold;
+        background-color: transparent;
+    }}
+    #floatingTranscribingLabel {{
+        color: {COLORS["accent"]};
+        font-size: 11px;
+        font-weight: bold;
+        background-color: transparent;
+    }}
+    #floatingProgressBar {{
+        background-color: {COLORS["border"]};
+        border: 1px solid {COLORS["border_hover"]};
+        border-radius: 4px;
+        text-align: center;
+        color: #ffffff;
+        font-size: 10px;
+    }}
+    #floatingProgressBar::chunk {{
+        background-color: {COLORS["accent"]};
+        border-radius: 3px;
+    }}
+    #floatingEtaLabel {{
+        color: {COLORS["text_muted"]};
+        font-size: 10px;
+        background-color: transparent;
+    }}
+"""
+
 
 def get_all_styles() -> str:
     """Get all combined styles for the application."""

@@ -83,6 +83,19 @@ Local Whisper is a Windows speech-to-text (STT) application that allows users to
 - Transcription times shall be recorded and stored to improve future estimates
 - The application shall store up to 20 recent transcription samples per model
 
+### FR-10: Floating Status Indicator
+- A small floating window shall appear during recording and transcription
+- The floating window shall be always-on-top so it remains visible over other applications
+- The floating window shall NOT steal keyboard focus from the user's active application
+- During recording, the floating window shall display:
+  - Animated audio level bars that react to voice input in real-time
+  - A visual indication that recording is active
+- During transcription, the floating window shall display:
+  - A progress bar showing transcription progress
+  - Estimated time remaining
+- The floating window shall be draggable to allow user repositioning
+- The floating window shall hide automatically when the application returns to idle state
+
 ## Non-Functional Requirements
 
 ### NFR-1: Performance

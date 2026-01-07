@@ -9,6 +9,7 @@ from .app import LocalWhisperApp, AppState
 from .transcriber import Transcriber
 from .ui.main_window import MainWindow
 from .ui.system_tray import SystemTray
+from .ui.floating_indicator import FloatingIndicator
 
 
 def main():
@@ -36,6 +37,9 @@ def main():
     # Create system tray
     tray = SystemTray()
     tray.show()
+    
+    # Create floating indicator
+    floating = FloatingIndicator()
     
     # Create app controller
     controller = LocalWhisperApp()
@@ -72,10 +76,23 @@ def main():
         # Show loading state
         if state == AppState.LOADING:
             window.set_loading(message)
+        
+        # Update floating indicator based on state
+        if is_recording:
+            floating.show_recording()
+        elif is_transcribing:
+            floating.show_transcribing()
+        else:
+            floating.hide_indicator()
     
     def on_transcription_progress(progress: float, elapsed: float, eta: float):
         """Handle transcription progress updates with ETA."""
         window.update_transcription_progress(progress, elapsed, eta)
+        floating.update_transcription_progress(progress, elapsed, eta)
+    
+    def on_audio_level_changed(level: float):
+        """Handle audio level updates from the recorder."""
+        floating.update_audio_level(level)
     
     def on_error(message: str):
         """Handle errors."""
@@ -132,6 +149,7 @@ def main():
     controller.download_complete.connect(on_download_complete)
     controller.model_ready.connect(on_model_ready)
     controller.transcription_progress.connect(on_transcription_progress)
+    controller.audio_recorder.audio_level_changed.connect(on_audio_level_changed)
     
     window.model_selected.connect(on_model_selected)
     window.download_requested.connect(on_download_requested)

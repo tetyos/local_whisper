@@ -9,7 +9,7 @@ local_whisper/
 │   │   ├── __init__.py           # Package initialization with version info
 │   │   ├── main.py               # Application entry point
 │   │   ├── app.py                # Main application controller (state machine)
-│   │   ├── audio_recorder.py     # Microphone audio capture module
+│   │   ├── audio_recorder.py     # Microphone audio capture module (with audio level signal)
 │   │   ├── transcriber.py        # Whisper model integration for STT
 │   │   ├── hotkey_handler.py     # Global Ctrl+Space hotkey listener
 │   │   ├── text_output.py        # Text typing into active window
@@ -18,6 +18,7 @@ local_whisper/
 │   │       ├── main_window.py          # Main window coordinator
 │   │       ├── main_view.py            # Main status view widget
 │   │       ├── model_selector_view.py  # Model selection view widget
+│   │       ├── floating_indicator.py   # Floating status indicator window
 │   │       ├── styles.py               # Shared CSS styles module
 │   │       └── system_tray.py          # System tray icon and menu
 │   └── tests/                    # Test suite
@@ -311,6 +312,7 @@ MainWindow (QMainWindow)
 | `main_window.py` | Window coordinator, manages `QStackedWidget`, routes signals |
 | `main_view.py` | Main status view with recording state, transcription progress |
 | `model_selector_view.py` | Model cards, download progress, model selection |
+| `floating_indicator.py` | Always-on-top floating window for recording/transcription status |
 | `styles.py` | Centralized CSS styles and color palette |
 | `system_tray.py` | System tray icon and context menu |
 
@@ -319,6 +321,37 @@ MainWindow (QMainWindow)
 2. Add view to `QStackedWidget` in `MainWindow._setup_ui()`
 3. Add navigation signals/methods to coordinate switching
 4. Import styles from `styles.py` for consistency
+
+### Floating Status Indicator
+
+The `FloatingIndicator` is a small always-on-top window that appears during recording and transcription:
+
+```
+Recording Mode (~170x80px):
+┌─────────────────────────┐
+│    🎤 Recording...      │
+│  ▌▐ ▌▐▐ ▐▌▐ ▌▐          │ ← Animated audio level bars
+└─────────────────────────┘
+
+Transcribing Mode (~170x90px):
+┌─────────────────────────┐
+│    Transcribing...      │
+│  ▓▓▓▓▓▓▓▓▓░░░░░  65%   │
+│    ETA: 3s              │
+└─────────────────────────┘
+```
+
+**Key Features:**
+- Uses `Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool | Qt.WindowType.WindowDoesNotAcceptFocus` to stay visible without stealing keyboard focus
+- Frameless, semi-transparent, dark-themed to match application aesthetics
+- Draggable anywhere on the window
+- Default position: bottom-right corner of primary screen
+
+**Audio Level Visualization:**
+- `AudioRecorder` calculates RMS (Root Mean Square) of audio chunks and emits `audio_level_changed(float)` signal every ~50ms
+- `AudioLevelWidget` displays 7 animated vertical bars that react to the audio level
+- Each bar has slight random variation for a more dynamic appearance
+- Smooth animation using incremental interpolation (30fps update rate)
 
 ### Component Flow
 

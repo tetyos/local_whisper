@@ -244,6 +244,35 @@ def fake_downloaded_model(temp_model_dir: Path) -> str:
 # PyQt6 Fixtures (requires pytest-qt)
 # ============================================================================
 
+@pytest.fixture(scope="session")
+def qapp():
+    """
+    Create a QApplication instance for the test session.
+    
+    This is needed because some components (like AudioRecorder) inherit from QObject
+    and require a Qt event loop to work properly.
+    """
+    from PyQt6.QtWidgets import QApplication
+    
+    # Check if a QApplication already exists
+    app = QApplication.instance()
+    if app is None:
+        app = QApplication([])
+    
+    yield app
+    
+    # Don't quit the app here - pytest-qt will handle it
+
+
+@pytest.fixture(autouse=True)
+def ensure_qapp(qapp):
+    """
+    Automatically ensure QApplication exists for all tests.
+    
+    This is autouse=True so tests don't need to explicitly request it.
+    """
+    return qapp
+
 
 # ============================================================================
 # App Component Fixtures
