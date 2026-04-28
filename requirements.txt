@@ -4,7 +4,7 @@ numpy>=1.24.0
 keyboard>=0.13.5
 pyautogui>=0.9.54
 PyQt6>=6.5.0
-pyinstaller>=6.0.0
+pyinstaller>=6.20.0
 huggingface_hub>=0.20.0
 
 # Testing dependencies
